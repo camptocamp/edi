@@ -71,10 +71,10 @@ class BusinessDocumentImport(models.AbstractModel):
         company_id = self._context.get("force_company") or self.env.user.company_id.id
         domain = ["|", ("company_id", "=", False), ("company_id", "=", company_id)]
         if partner_type == "supplier":
-            domain += [("supplier", "=", True)]
+            domain += [("supplier_rank", ">", 0)]
             partner_type_label = _("supplier")
         elif partner_type == "customer":
-            domain += [("customer", "=", True)]
+            domain += [("customer_rank", ">", 0)]
             partner_type_label = _("customer")
         else:
             partner_type_label = _("partner")
