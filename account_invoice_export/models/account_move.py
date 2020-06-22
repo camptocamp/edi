@@ -13,11 +13,12 @@ from odoo.addons.queue_job.job import job
 class AccountMove(models.Model):
     _inherit = "account.move"
 
-    invoice_sent_through_http = fields.Boolean()
+    invoice_sent_through_http = fields.Boolean(copy=False)
 
     def send_through_http(self):
         for invoice in self:
-            invoice.with_delay()._send_through_http()
+            if invoice.transmit_method_id.send_through_http:
+                invoice.with_delay()._send_through_http()
 
     @job
     def _send_through_http(self):
@@ -28,7 +29,7 @@ class AccountMove(models.Model):
         if not self.transmit_method_id.send_through_http:
             raise UserError(_("Transmit method is not configured to send through HTTP"))
         file_data = self._get_file_for_transmission_method()
-        headers = self.transmit_method_id.get_transmition_http_header()
+        headers = self.transmit_method_id.get_transmission_http_header()
         res = requests.post(
             self.transmit_method_id.destination_url, headers=headers, files=file_data
         )
@@ -68,7 +69,8 @@ class AccountMove(models.Model):
             "account.report_invoice"
         )
         pdf, _ = r.render([self.id])
-        return {"file": ("test_invoice", pdf, "application/pdf")}
+        filename = self._get_report_base_filename().replace("/", "_") + ".pdf"
+        return {"file": (filename, pdf, "application/pdf")}
 
     def log_error_sending_invoice(self, values):
         """Log an exception in invoice's chatter when sending fails.
@@ -78,7 +80,9 @@ class AccountMove(models.Model):
 
         """
         activity_type = "account_invoice_export.mail_activity_transmit_warning"
-        activity = self.activity_reschedule([activity_type], date_deadline="2020-12-31")
+        activity = self.activity_reschedule(
+            [activity_type], date_deadline=fields.Date.today()
+        )
         if not activity:
             message = self.env.ref(
                 "account_invoice_export.exception_sending_invoice"

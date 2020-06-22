@@ -14,7 +14,7 @@ class TransmitMethod(models.Model):
     destination_user = fields.Char(string="User", copy=False)
     destination_pwd = fields.Char(string="Password", copy=False)
 
-    def get_transmition_http_header(self):
+    def get_transmission_http_header(self):
         """Generate the HTTP header needed by the transmission method.
 
         For now only basic authentication is implemented.
