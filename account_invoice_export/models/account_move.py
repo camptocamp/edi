@@ -13,11 +13,12 @@ from odoo.addons.queue_job.job import job
 class AccountMove(models.Model):
     _inherit = "account.move"
 
-    invoice_sent_through_http = fields.Boolean()
+    invoice_sent_through_http = fields.Boolean(copy=False)
 
     def send_through_http(self):
         for invoice in self:
-            invoice.with_delay()._send_through_http()
+            if invoice.transmit_method_id.send_through_http:
+                invoice.with_delay()._send_through_http()
 
     @job
     def _send_through_http(self):
@@ -25,19 +26,36 @@ class AccountMove(models.Model):
         self.ensure_one()
         if self.invoice_sent_through_http:
             return "Invoice has already been sent through http before."
-        if not self.transmit_method_id.send_through_http:
-            raise UserError(_("Transmit method is not configured to send through HTTP"))
-        file_data = self._get_file_for_transmission_method()
-        headers = self.transmit_method_id.get_transmition_http_header()
-        res = requests.post(
-            self.transmit_method_id.destination_url, headers=headers, files=file_data
-        )
-        if res.status_code != 200:
+
+        try:
+            if not self.transmit_method_id.send_through_http:
+                raise UserError(
+                    _("Transmit method is not configured to send through HTTP")
+                )
+            file_data = self._get_file_for_transmission_method()
+            headers = self.transmit_method_id.get_transmission_http_header()
+            res = requests.post(
+                self.transmit_method_id.destination_url,
+                headers=headers,
+                files=file_data,
+            )
+            if res.status_code != 200:
+                raise UserError(
+                    _(
+                        "HTTP error {} sending invoice to {}".format(
+                            res.status_code, self.transmit_method_id.name
+                        )
+                    )
+                )
+        except Exception as e:
             values = {
                 "job_id": self.env.context.get("job_uuid"),
-                "send_error": res.status_code,
+                "error_detail": "",
+                "error_type": type(e).__name__,
                 "transmit_method_name": self.transmit_method_id.name,
             }
+            if type(e) == UserError:
+                values["error_detail"] = e.name
             with odoo.api.Environment.manage():
                 with odoo.registry(self.env.cr.dbname).cursor() as new_cr:
                     # Create a new environment with new cursor database
@@ -46,13 +64,8 @@ class AccountMove(models.Model):
                     )
                     # The chatter of the invoice need to be updated, when the job fails
                     self.with_env(new_env).log_error_sending_invoice(values)
-            raise UserError(
-                _(
-                    "HTTP error {} sending invoice to {}".format(
-                        res.status_code, self.transmit_method_id.name
-                    )
-                )
-            )
+            raise
+
         self.invoice_sent_through_http = True
         self.invoice_send = True
         self.log_success_sending_invoice()
@@ -68,7 +81,8 @@ class AccountMove(models.Model):
             "account.report_invoice"
         )
         pdf, _ = r.render([self.id])
-        return {"file": ("test_invoice", pdf, "application/pdf")}
+        filename = self._get_report_base_filename().replace("/", "_") + ".pdf"
+        return {"file": (filename, pdf, "application/pdf")}
 
     def log_error_sending_invoice(self, values):
         """Log an exception in invoice's chatter when sending fails.
@@ -78,16 +92,22 @@ class AccountMove(models.Model):
 
         """
         activity_type = "account_invoice_export.mail_activity_transmit_warning"
-        activity = self.activity_reschedule([activity_type], date_deadline="2020-12-31")
+        activity = self.activity_reschedule(
+            [activity_type], date_deadline=fields.Date.today()
+        )
         if not activity:
             message = self.env.ref(
                 "account_invoice_export.exception_sending_invoice"
             ).render(values=values)
-            self.activity_schedule(
+            activity = self.activity_schedule(
                 activity_type, summary="Job error sending invoice", note=message
             )
-        else:
-            activity.note += "<p>It failed again, ouch!</p>"
+        error_log = values.get("error_detail")
+        if not error_log:
+            error_log = _("An error of type {} occured.").format(
+                values.get("error_type")
+            )
+        activity.note += "<div class='mt16'><p>{}</p></div>".format(error_log)
 
     def log_success_sending_invoice(self):
         """Log success sending invoice and clear existing exception, if any."""
