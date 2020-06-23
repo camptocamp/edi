@@ -487,21 +487,23 @@ class AccountInvoiceImport(models.TransientModel):
             ], limit=1)
         return existing_inv
 
-    @api.multi
+    def get_parsed_invoice(self):
+        """Hook to change the method of retrieval for the invoice data"""
+        return self.parse_invoice(self.invoice_file, self.invoice_filename)
+
     def import_invoice(self):
         """Method called by the button of the wizard
         (import step AND config step)"""
         self.ensure_one()
-        aio = self.env['account.invoice']
-        aiico = self.env['account.invoice.import.config']
-        bdio = self.env['business.document.import']
-        iaao = self.env['ir.actions.act_window']
-        company_id = self.env.context.get('force_company') or\
-            self.env.user.company_id.id
-        parsed_inv = self.parse_invoice(
-            self.invoice_file, self.invoice_filename)
-        partner = bdio._match_partner(
-            parsed_inv['partner'], parsed_inv['chatter_msg'])
+        aio = self.env["account.move"]
+        aiico = self.env["account.invoice.import.config"]
+        bdio = self.env["business.document.import"]
+        iaao = self.env["ir.actions.act_window"]
+        company_id = (
+            self.env.context.get("force_company") or self.env.user.company_id.id
+        )
+        parsed_inv = self.get_parsed_invoice()
+        partner = bdio._match_partner(parsed_inv["partner"], parsed_inv["chatter_msg"])
         partner = partner.commercial_partner_id
         currency = bdio._match_currency(
             parsed_inv.get('currency'), parsed_inv['chatter_msg'])
@@ -581,8 +583,7 @@ class AccountInvoiceImport(models.TransientModel):
         self.ensure_one()
         iaao = self.env['ir.actions.act_window']
         if parsed_inv is None:
-            parsed_inv = self.parse_invoice(
-                self.invoice_file, self.invoice_filename)
+            parsed_inv = self.get_parsed_invoice()
         if import_config is None:
             assert self.import_config_id
             import_config = self.import_config_id.convert_to_import_config()
@@ -845,10 +846,8 @@ class AccountInvoiceImport(models.TransientModel):
         bdio = self.env['business.document.import']
         invoice = self.invoice_id
         if not invoice:
-            raise UserError(_(
-                'You must select a supplier invoice or refund to update'))
-        parsed_inv = self.parse_invoice(
-            self.invoice_file, self.invoice_filename)
+            raise UserError(_("You must select a supplier invoice or refund to update"))
+        parsed_inv = self.get_parsed_invoice()
         if self.partner_id:
             # True if state='update' ; False when state='update-from-invoice'
             parsed_inv['partner']['recordset'] = self.partner_id
