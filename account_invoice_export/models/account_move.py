@@ -13,40 +13,22 @@ from odoo.addons.queue_job.job import job
 class AccountMove(models.Model):
     _inherit = "account.move"
 
-    invoice_sent_through_http = fields.Boolean(copy=False)
+    invoice_exported = fields.Boolean(copy=False)
 
-    def send_through_http(self):
+    def export_invoice(self):
         for invoice in self:
-            if invoice.transmit_method_id.send_through_http:
-                invoice.with_delay()._send_through_http()
+            invoice.with_delay()._job_export_invoice()
 
     @job
-    def _send_through_http(self):
-        """Send invoice to server configured in transmit method."""
-        self.ensure_one()
-        if self.invoice_sent_through_http:
-            return "Invoice has already been sent through http before."
+    def _job_export_invoice(self):
+        """Queue job that call the eport method and update the chatter.
 
+        """
+        self.ensure_one()
+        if self.invoice_exported:
+            return "Invoice has already been sent through http before."
         try:
-            if not self.transmit_method_id.send_through_http:
-                raise UserError(
-                    _("Transmit method is not configured to send through HTTP")
-                )
-            file_data = self._get_file_for_transmission_method()
-            headers = self.transmit_method_id.get_transmission_http_header()
-            res = requests.post(
-                self.transmit_method_id.destination_url,
-                headers=headers,
-                files=file_data,
-            )
-            if res.status_code != 200:
-                raise UserError(
-                    _(
-                        "HTTP error {} sending invoice to {}".format(
-                            res.status_code, self.transmit_method_id.name
-                        )
-                    )
-                )
+            res = self._export_invoice()
         except Exception as e:
             values = {
                 "job_id": self.env.context.get("job_uuid"),
@@ -65,10 +47,27 @@ class AccountMove(models.Model):
                     # The chatter of the invoice need to be updated, when the job fails
                     self.with_env(new_env).log_error_sending_invoice(values)
             raise
-
-        self.invoice_sent_through_http = True
-        self.invoice_send = True
+        self.invoice_exported = self.invoice_send = True
         self.log_success_sending_invoice()
+        return res
+
+    def _export_invoice(self):
+        """Export electronic invoice to external service."""
+        if not self.transmit_method_id.send_through_http:
+            raise UserError(_("Transmit method is not configured to send through HTTP"))
+        file_data = self._get_file_for_transmission_method()
+        headers = self.transmit_method_id.get_transmission_http_header()
+        res = requests.post(
+            self.transmit_method_id.destination_url, headers=headers, files=file_data,
+        )
+        if res.status_code != 200:
+            raise UserError(
+                _(
+                    "HTTP error {} sending invoice to {}".format(
+                        res.status_code, self.transmit_method_id.name
+                    )
+                )
+            )
         return res.text
 
     def _get_file_for_transmission_method(self):
@@ -89,7 +88,6 @@ class AccountMove(models.Model):
 
         If an exception already exists it is update otherwise a new one
         is created.
-
         """
         activity_type = "account_invoice_export.mail_activity_transmit_warning"
         activity = self.activity_reschedule(
