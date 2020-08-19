@@ -14,19 +14,20 @@ class AccountMove(models.Model):
     _inherit = "account.move"
 
     invoice_exported = fields.Boolean(copy=False)
+    # Usefull when the distant system does not validate the export synchronously
+    invoice_export_confirmed = fields.Boolean(copy=False)
 
     def export_invoice(self):
         for invoice in self:
-            invoice.with_delay()._job_export_invoice()
+            description = "{} - Export ebill".format(invoice.transmit_method_id.name)
+            invoice.with_delay(description=description)._job_export_invoice()
 
-    @job
+    @job(default_channel="root.invoice_export")
     def _job_export_invoice(self):
-        """Queue job that call the eport method and update the chatter.
-
-        """
+        """Export ebill to external server and update the chatter."""
         self.ensure_one()
-        if self.invoice_exported:
-            return "Invoice has already been sent through http before."
+        if self.invoice_exported and self.invoice_export_confirmed:
+            return _("Nothing done, invoice has already been exported before.")
         try:
             res = self._export_invoice()
         except Exception as e:
@@ -47,7 +48,7 @@ class AccountMove(models.Model):
                     # The chatter of the invoice need to be updated, when the job fails
                     self.with_env(new_env).log_error_sending_invoice(values)
             raise
-        self.invoice_exported = self.invoice_send = True
+        self.invoice_send = True
         self.log_success_sending_invoice()
         return res
 
@@ -68,6 +69,7 @@ class AccountMove(models.Model):
                     )
                 )
             )
+        self.invoice_exported = self.invoice_export_confirmed = True
         return res.text
 
     def _get_file_for_transmission_method(self):

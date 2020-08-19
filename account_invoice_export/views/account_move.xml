@@ -7,6 +7,7 @@
         <field name="arch" type="xml">
             <field name="transmit_method_id" position="after">
                 <field name="invoice_exported" invisible="1" />
+                <field name="invoice_export_confirmed" invisible="1" />
             </field>
             <button name="action_invoice_sent" position="after">
                 <button
@@ -16,6 +17,15 @@
                     attrs="{'invisible':['|', ('state', '!=', 'posted'), ('invoice_exported', '=', True)]}"
                     groups="base.group_user"
                     class="oe_highlight"
+                />
+                <button
+                    name="export_invoice"
+                    string="Resend eBill"
+                    type="object"
+                    attrs="{'invisible':['|', ('state', '!=', 'posted'), '|', ('invoice_export_confirmed', '=', True), ('invoice_exported', '=', False)]}"
+                    groups="base.group_user"
+                    class="oe_highlight"
+                    confirm="Ebill has already been sent, but has not yet been accpeted by the distant system. Are you sure you want to send it again ?"
                 />
             </button>
         </field>
