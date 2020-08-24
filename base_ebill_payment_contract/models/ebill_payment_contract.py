@@ -8,13 +8,9 @@ class EbillPaymentContract(models.Model):
 
     _name = "ebill.payment.contract"
     _description = "Ebill Payment Contract"
-    _rec_name = "name"
 
     transmit_method_id = fields.Many2one(
         comodel_name="transmit.method", string="Service Name", ondelete="restrict",
-    )
-    partner_id = fields.Many2one(
-        comodel_name="res.partner", required=True, string="Customer"
     )
     partner_id = fields.Many2one(
         comodel_name="res.partner", required=True, string="Customer"
@@ -44,10 +40,11 @@ class EbillPaymentContract(models.Model):
         It is valid if the contract is opened and his start date is in the pass
         And his end date is in the future or not set.
         """
+        today = fields.Date.today()
         for contract in self:
             contract.is_valid = (
                 contract.state == "open"
                 and contract.date_start
-                and contract.date_start <= fields.Date.today()
-                and (not contract.date_end or contract.date_end >= fields.Date.today())
+                and contract.date_start <= today
+                and (not contract.date_end or contract.date_end >= today)
             )
