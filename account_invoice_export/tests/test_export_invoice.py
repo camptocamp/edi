@@ -18,7 +18,7 @@ class TestExportAcountInvoice(SingleTransactionCase):
                 "code": "httppost",
                 "customer_ok": True,
                 "send_through_http": True,
-                "destination_url": "https://somewhere.com/post",
+                "destination_url": "https://example.com/post",
                 "destination_user": "user",
                 "destination_pwd": "pwd",
             }
@@ -79,6 +79,3 @@ class TestExportAcountInvoice(SingleTransactionCase):
     def test_get_file_description(self):
         res = self.invoice_1._get_file_for_transmission_method()
         self.assertTrue(res["file"])
-
-    # def test_export_invoice(self):
-    # self.invoice_1.send_through_http()

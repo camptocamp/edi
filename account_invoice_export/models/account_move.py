@@ -5,7 +5,7 @@ import requests
 
 import odoo
 from odoo import _, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, except_orm
 
 from odoo.addons.queue_job.job import job
 
@@ -37,7 +37,7 @@ class AccountMove(models.Model):
                 "error_type": type(e).__name__,
                 "transmit_method_name": self.transmit_method_id.name,
             }
-            if type(e) == UserError:
+            if isinstance(e, except_orm):
                 values["error_detail"] = e.name
             with odoo.api.Environment.manage():
                 with odoo.registry(self.env.cr.dbname).cursor() as new_cr:
