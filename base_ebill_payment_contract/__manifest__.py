@@ -2,9 +2,9 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 {
-    "name": "Base Ebill Payment Contract",
+    "name": "Base eBill Payment Contract",
     "summary": """
-        Base for ebilling addons""",
+        Base for managing e-billing contracts""",
     "version": "13.0.1.0.0",
     "license": "AGPL-3",
     "author": "Camptocamp SA,Odoo Community Association (OCA)",

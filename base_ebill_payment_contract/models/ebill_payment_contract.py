@@ -7,7 +7,7 @@ from odoo import api, fields, models
 class EbillPaymentContract(models.Model):
 
     _name = "ebill.payment.contract"
-    _description = "Ebill Payment Contract"
+    _description = "eBill Payment Contract"
 
     transmit_method_id = fields.Many2one(
         comodel_name="transmit.method", string="Service Name", ondelete="restrict",
