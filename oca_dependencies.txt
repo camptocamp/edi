@@ -3,3 +3,5 @@ sale-workflow
 server-tools
 partner-contact
 server-auth
+account-invoicing
+queue
