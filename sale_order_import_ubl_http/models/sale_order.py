@@ -1,6 +1,8 @@
 # Copyright 2020 Camptocamp SA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
+from base64 import b64encode
+
 from odoo import _, api, models
 from odoo.exceptions import UserError
 
@@ -11,11 +13,11 @@ class SaleOrder(models.Model):
     _inherit = "sale.order"
 
     @api.model
-    @job(default_channel="root.invoice_import")
+    @job(default_channel="root.ubl_import")
     def import_ubl_from_http(self, data):
         """Job called by the endpoint to import received data."""
         wiz = self.env["sale.order.import"].create({})
-        wiz.order_file = str.encode(data)
+        wiz.order_file = b64encode(str.encode(data))
         wiz.order_filename = "imported_invoice.xml"
         wiz.order_file_change()
         wiz.price_source = self._get_default_price_source()
@@ -31,7 +33,7 @@ class SaleOrder(models.Model):
             order.action_confirm()
             return _("Sale order created with id {}").format(order_id)
         else:
-            raise UserError(_("Someting went wrong with the importing wizard."))
+            raise UserError(_("Something went wrong with the importing wizard."))
 
     @api.model
     def _get_default_price_source(self):

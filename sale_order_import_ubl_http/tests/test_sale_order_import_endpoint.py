@@ -2,7 +2,6 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
 import os
-from base64 import b64encode
 
 from werkzeug.exceptions import BadRequest
 
@@ -30,7 +29,7 @@ class TestSaleOrderImportEndpoint(SingleTransactionCase):
         with open(path, "rb") as file:
             data = file.read()
         self.controller.check_data_to_import(self.env, data)
-        data = b64encode(data).decode("utf-8")
+        data = data.decode("utf-8")
         with tools.mute_logger("odoo.addons.queue_job.models.base"):
             res = (
                 self.env["sale.order"]

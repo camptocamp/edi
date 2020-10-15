@@ -1,8 +1,6 @@
 # Copyright 2020 Camptocamp SA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
-from base64 import b64encode
-
 import werkzeug
 from lxml import etree
 
@@ -35,7 +33,7 @@ class ImportController(http.Controller):
         xml_data = req.get_data()
         self.check_data_to_import(env, xml_data)
         description = "Import UBL sale order from http"
-        xml_data = b64encode(xml_data).decode("utf-8")
+        xml_data = xml_data.decode("utf-8")
         env["sale.order"].with_delay(description=description).import_ubl_from_http(
             xml_data
         )
