@@ -14,7 +14,7 @@ class ImportController(http.Controller):
         "/ubl_api/sales", type="http", auth="api_key", methods=["POST"], csrf=False
     )
     def import_sale_order(self, **kw):
-        """Endpoint to import an UBL sale order.
+        """Endpoint to import an UBL order.
 
         Example to test from the terminal:
 
