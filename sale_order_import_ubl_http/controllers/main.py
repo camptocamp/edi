@@ -37,7 +37,7 @@ class ImportController(http.Controller):
         env["sale.order"].with_delay(description=description).import_ubl_from_http(
             xml_data
         )
-        return "Thank you. Your sale order will be processed, shortly"
+        return "Thank you. Your order will be processed, shortly"
 
     def check_data_to_import(self, env, data):
         """ Check the data received looks valid.
