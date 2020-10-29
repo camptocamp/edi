@@ -31,7 +31,7 @@ class SaleOrder(models.Model):
             order_id = res["res_id"]
             order = self.env["sale.order"].browse(order_id)
             order.action_confirm()
-            return _("Sale order created with id {}").format(order_id)
+            return _("Sales order {} created").format(order.name)
         else:
             raise UserError(_("Something went wrong with the importing wizard."))
 
