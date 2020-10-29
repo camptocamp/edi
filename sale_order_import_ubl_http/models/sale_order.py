@@ -26,7 +26,7 @@ class SaleOrder(models.Model):
         if action_xmlid == "sale_order_import.sale_order_import_action":
             # TODO: Order has already been imported
             #   there could be more than one to update ?
-            return _("Sale order has already been imported before, nothing done.")
+            return _("Sales order has already been imported before, nothing done.")
         elif action_xmlid == "sale.action_quotations":
             order_id = res["res_id"]
             order = self.env["sale.order"].browse(order_id)
