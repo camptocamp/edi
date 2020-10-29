@@ -32,7 +32,7 @@ class ImportController(http.Controller):
         env = request.env
         xml_data = req.get_data()
         self.check_data_to_import(env, xml_data)
-        description = "Import UBL sale order from http"
+        description = "Import UBL order from http"
         xml_data = xml_data.decode("utf-8")
         env["sale.order"].with_delay(description=description).import_ubl_from_http(
             xml_data
