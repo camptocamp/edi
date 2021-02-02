@@ -7,8 +7,8 @@
     <record id="account_exchange_type" model="edi.exchange.type">
         <field name="name">Invoice Import File</field>
         <field name="code">account.invoice.import</field>
-        <field name="backend_type_id" ref="backend_type"/>
-        <field name="backend_id"  eval="False"/>
+        <field name="backend_type_id" ref="backend_type" />
+        <field name="backend_id" eval="False" />
         <field name="direction">input</field>
         <field name="exchange_filename_pattern">{record_name}--{dt}</field>
         <field name="exchange_file_ext">pdf</field>

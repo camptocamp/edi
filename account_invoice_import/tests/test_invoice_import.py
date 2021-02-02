@@ -196,42 +196,40 @@ class TestInvoiceImport(EDIBackendCommonComponentRegistryTestCase):
                 },
             ],
         }
+        move_vals = {
+            "type": "in_invoice",
+            "partner_id": self.env.ref("base.res_partner_1").id,
+            "invoice_line_ids": [
+                (
+                    0,
+                    0,
+                    {
+                        "product_id": self.product_02.id,
+                        "account_id": self.product_02.property_account_income_id.id,
+                        "quantity": 1,
+                        "product_uom_id": self.product_02.uom_id.id,
+                        "tax_ids": [(4, self.purchase_tax.id)],
+                        "price_unit": 10,
+                    },
+                ),
+                (
+                    0,
+                    0,
+                    {
+                        "product_id": self.product_03.id,
+                        "account_id": self.product_03.property_account_income_id.id,
+                        "quantity": 1,
+                        "product_uom_id": self.product_03.uom_id.id,
+                        "tax_ids": [(4, self.purchase_tax.id)],
+                        "price_unit": 10,
+                    },
+                ),
+            ],
+        }
         for import_config in self.all_import_config_01.filtered(
             lambda r: r.invoice_line_method == "nline_auto_product"
         ):
-
-            move = self.env["account.move"].create(
-                {
-                    "type": "in_invoice",
-                    "partner_id": self.env.ref("base.res_partner_1").id,
-                    "invoice_line_ids": [
-                        (
-                            0,
-                            0,
-                            {
-                                "product_id": self.product_02.id,
-                                "account_id": self.product_02.property_account_income_id.id,
-                                "quantity": 1,
-                                "product_uom_id": self.product_02.uom_id.id,
-                                "tax_ids": [(4, self.purchase_tax.id)],
-                                "price_unit": 10,
-                            },
-                        ),
-                        (
-                            0,
-                            0,
-                            {
-                                "product_id": self.product_03.id,
-                                "account_id": self.product_03.property_account_income_id.id,
-                                "quantity": 1,
-                                "product_uom_id": self.product_03.uom_id.id,
-                                "tax_ids": [(4, self.purchase_tax.id)],
-                                "price_unit": 10,
-                            },
-                        ),
-                    ],
-                }
-            )
+            move = self.env["account.move"].create(move_vals)
             wizard = self.env["account.invoice.import"].create(
                 {
                     "invoice_id": move.id,
