@@ -180,23 +180,37 @@ class BusinessDocumentImport(models.AbstractModel):
         return False
 
     @api.model
+    def _get_partner_email_domain(self, partner_dict):
+        return (
+            partner_dict.get("email")
+            and "@" in partner_dict["email"]
+            and partner_dict["email"].split("@")[1]
+        )
+
+    @api.model
     def _match_partner_email(self, partner_dict, chatter_msg, domain, order):
-        website_domain = self._get_partner_website_domain(partner_dict)
+        email_domain = self._get_partner_email_domain(partner_dict)
         # I can't search on email addresses with
         # email_domain because of the emails such as
         # @gmail.com, @yahoo.com that may match random partners
-        if website_domain:
+        if email_domain:
             partner = self.env["res.partner"].search(
-                domain + [("email", "=ilike", "%@" + website_domain)],
+                domain + [("website", "=ilike", "%" + email_domain + "%")],
                 limit=1,
                 order=order,
             )
+            if not partner:
+                partner = self.env["res.partner"].search(
+                    domain + [("email", "=ilike", "%@" + email_domain)],
+                    limit=1,
+                    order=order,
+                )
             if partner:
                 partner_type_label = partner_dict["type_label"]
                 chatter_msg.append(
                     _(
-                        "The partner has been identified by the domain name '%s' "
-                        "so please check carefully that the partner is correct."
+                        "The %s has been identified by the domain name '%s' "
+                        "so please check carefully that the %s is correct."
                     )
                     % (partner_type_label, domain, partner_type_label)
                 )
