@@ -51,7 +51,7 @@ class BusinessDocumentImport(models.AbstractModel):
     def _get_match_partner_order(self, partner_type):
         if partner_type == "supplier":
             return "supplier_rank desc"
-        elif partner_type == "customer":
+        if partner_type == "customer":
             return "customer_rank desc"
         return ""
 
@@ -59,7 +59,7 @@ class BusinessDocumentImport(models.AbstractModel):
     def _get_match_partner_type_label(self, partner_type):
         if partner_type == "supplier":
             return _("supplier")
-        elif partner_type == "customer":
+        if partner_type == "customer":
             return _("customer")
         return _("partner")
 
@@ -77,15 +77,14 @@ class BusinessDocumentImport(models.AbstractModel):
                     ("country_id", "=", False),
                     ("country_id", "=", country.id),
                 ]
-            else:
-                chatter_msg.append(
-                    _(
-                        "The analysis of the business document returned '%s' as "
-                        "country code. But there are no country with that code "
-                        "in Odoo."
-                    )
-                    % partner_dict["country_code"]
+            chatter_msg.append(
+                _(
+                    "The analysis of the business document returned '%s' as "
+                    "country code. But there are no country with that code "
+                    "in Odoo."
                 )
+                % partner_dict["country_code"]
+            )
         return False
 
     @api.model
