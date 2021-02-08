@@ -151,7 +151,7 @@ class AccountInvoiceImport(models.TransientModel):
             parsed_inv = self.parse_pdf_invoice(file_data)
         # FIXME binary is not Serializable
         # if "attachments" not in parsed_inv:
-            # parsed_inv["attachments"] = {}
+        #     parsed_inv["attachments"] = {}
         # parsed_inv["attachments"][invoice_filename] = invoice_file_b64
         # pre_process_parsed_inv() will be called again a second time,
         # but it's OK
