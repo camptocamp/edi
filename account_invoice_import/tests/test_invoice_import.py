@@ -3,7 +3,13 @@
 
 from odoo.tools import float_compare
 
+from odoo import fields
+from odoo.addons.base_sparse_field.models.fields import Serialized
+
 from odoo.addons.edi.tests.common import EDIBackendCommonComponentRegistryTestCase
+
+# pytest compatibility
+fields.Serialized = Serialized
 
 
 class TestInvoiceImport(EDIBackendCommonComponentRegistryTestCase):
