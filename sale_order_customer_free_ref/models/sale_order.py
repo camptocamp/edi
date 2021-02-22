@@ -7,6 +7,8 @@ from odoo import api, fields, models
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
+    _client_order_ref_separator = " - "
+
     client_order_ref = fields.Char(
         compute="_compute_client_order_ref",
         string="Customer Reference",
@@ -21,8 +23,8 @@ class SaleOrder(models.Model):
     def _compute_client_order_ref(self):
         for order in self:
             refs = [order.customer_order_number, order.customer_order_free_ref]
-            refs = [ref for ref in refs if ref]
-            order.client_order_ref = " - ".join(refs)
+            refs = [ref for ref in refs if ref and ref.strip()]
+            order.client_order_ref = self._client_order_ref_separator.join(refs)
 
     def _prepare_invoice(self):
         res = super()._prepare_invoice()

@@ -6,8 +6,8 @@
     "version": "13.0.1.0.0",
     "category": "Sale",
     "license": "AGPL-3",
-    "summary": "Splits the Customer Reference on sale orders into two fields."
-    "An Id and a Free reference. The existing field is transformed"
+    "summary": "Splits the Customer Reference on sale orders into two fields. "
+    "An Id and a Free reference. The existing field is transformed "
     "into a computed one.",
     "author": "Camptocamp SA, Odoo Community Association (OCA)",
     "website": "https://github.com/oca/edi",

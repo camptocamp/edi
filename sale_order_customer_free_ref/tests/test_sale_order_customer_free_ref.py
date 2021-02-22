@@ -11,8 +11,9 @@ class TestSaleOrderCustomerFreeRef(SingleTransactionCase):
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
         cls.order = cls.env.ref("sale.sale_order_1")
 
-    def test_one(self):
+    def test_client_order_ref_computation(self):
         self.order.customer_order_number = "123"
+        self.order.customer_order_free_ref = ""
         self.assertEqual(self.order.client_order_ref, "123")
         self.order.customer_order_free_ref = "MrPink"
         self.assertEqual(self.order.client_order_ref, "123 - MrPink")
@@ -28,3 +29,11 @@ class TestSaleOrderCustomerFreeRef(SingleTransactionCase):
             self.order.customer_order_free_ref, invoice.customer_order_free_ref
         )
         self.assertEqual(self.order.client_order_ref, invoice.ref)
+
+    def test_client_order_ref_computation_empty_values(self):
+        self.order.customer_order_number = "123"
+        self.order.customer_order_free_ref = "  "
+        self.assertEqual(self.order.client_order_ref, "123")
+        self.order.customer_order_number = ""
+        self.order.customer_order_free_ref = "MrPink"
+        self.assertEqual(self.order.client_order_ref, "MrPink")
