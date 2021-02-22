@@ -9,6 +9,9 @@
         <field name="customer_order_number" />
         <field name="customer_order_free_ref" />
       </xpath>
+      <xpath expr="//field[@name='client_order_ref']" position="attributes">
+        <attribute name="readonly">1</attribute>
+      </xpath>
     </field>
   </record>
 </odoo>

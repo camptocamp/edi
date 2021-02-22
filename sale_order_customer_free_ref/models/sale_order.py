@@ -14,7 +14,7 @@ class SaleOrder(models.Model):
         string="Customer Reference",
         store=True,
         copy=False,
-        readonly=True,
+        readonly=False,
     )
     customer_order_number = fields.Char(string="Customer Order Number", copy=False)
     customer_order_free_ref = fields.Char(string="Customer Free Reference", copy=False)
