@@ -37,3 +37,11 @@ class TestSaleOrderCustomerFreeRef(SingleTransactionCase):
         self.order.customer_order_number = ""
         self.order.customer_order_free_ref = "MrPink"
         self.assertEqual(self.order.client_order_ref, "MrPink")
+
+    def test_client_order_ref_inverse_function(self):
+        self.order.client_order_ref = "456 - MrBlue"
+        self.assertEqual(self.order.customer_order_number, "456")
+        self.assertEqual(self.order.customer_order_free_ref, "MrBlue")
+        self.order.client_order_ref = "456/abc"
+        self.assertEqual(self.order.customer_order_number, "456/abc")
+        self.assertFalse(self.order.customer_order_free_ref)
