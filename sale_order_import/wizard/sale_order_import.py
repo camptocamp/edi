@@ -171,7 +171,7 @@ class SaleOrderImport(models.TransientModel):
     #    }]
 
     @api.model
-    def search_existing_order_domain(
+    def _search_existing_order_domain(
         self, parsed_order, commercial_partner, state_domain
     ):
         return AND(
@@ -211,7 +211,7 @@ class SaleOrderImport(models.TransientModel):
         if parsed_order.get("order_ref"):
             commercial_partner = partner.commercial_partner_id
             existing_orders = soo.search(
-                self.search_existing_order_domain(
+                self._search_existing_order_domain(
                     parsed_order, commercial_partner, [("state", "!=", "cancel")]
                 )
             )
@@ -345,7 +345,7 @@ class SaleOrderImport(models.TransientModel):
                 parsed_order["ship_to"], partner, []
             ).id
         existing_quotations = self.env["sale.order"].search(
-            self.search_existing_order_domain(
+            self._search_existing_order_domain(
                 parsed_order, commercial_partner, [("state", "in", ("draft", "sent"))]
             )
         )
