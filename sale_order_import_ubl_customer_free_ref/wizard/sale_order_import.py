@@ -10,7 +10,7 @@ class SaleOrderImport(models.TransientModel):
     _inherit = "sale.order.import"
 
     @api.model
-    def search_existing_order_domain(
+    def _search_existing_order_domain(
         self, parsed_order, commercial_partner, state_domain
     ):
         # Overwrite from sale_order_import module
@@ -30,6 +30,8 @@ class SaleOrderImport(models.TransientModel):
         res = super()._prepare_order(parsed_order, price_source)
         res["customer_order_number"] = parsed_order.get("order_ref")
         res["customer_order_free_ref"] = parsed_order.get("customer_reference", "")
+        # Removed because will be computed
+        res.pop("client_order_ref")
         return res
 
     def parse_ubl_sale_order(self, xml_root):

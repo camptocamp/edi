@@ -4,11 +4,16 @@
 import base64
 
 from odoo import fields
-from odoo.tests.common import TransactionCase
+from odoo.tests.common import SingleTransactionCase
 from odoo.tools import file_open
 
 
-class TestUblOrderImport(TransactionCase):
+class TestUblOrderImport(SingleTransactionCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
+
     def test_ubl_order_import(self):
         tests = {
             "UBL-Order-2.1-Example.xml": {
@@ -30,10 +35,9 @@ class TestUblOrderImport(TransactionCase):
             },
         }
         for filename, res in tests.items():
-            f = file_open(
-                "sale_order_import_ubl_customer_free_ref/tests/files/" + filename, "rb"
-            )
-            xml_file = f.read()
+            file_path = "sale_order_import_ubl_customer_free_ref/tests/files/" + filename
+            with file_open(file_path, "rb") as f:
+                xml_file = f.read()
             wiz = self.env["sale.order.import"].create(
                 {"order_file": base64.b64encode(xml_file), "order_filename": filename}
             )
