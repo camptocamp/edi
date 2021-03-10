@@ -14,6 +14,16 @@
                     attrs="{'invisible': [('customer_ok', '=', False)]}"
                 >
                     <field name="send_through_http" />
+                    <div
+                        role="alert"
+                        class="alert alert-info"
+                        colspan="2"
+                        attrs="{'invisible': [('send_through_http', '=', False)]}"
+                    >
+                      <span
+                        >By default the PDF of the invoice will be send using the connection parameters below (basic authenticaiton).<br
+                            />Handling specific connection needs and/or exporting other files can be done through code.</span>
+                    </div>
                     <field
                         name="destination_url"
                         attrs="{'invisible': [('send_through_http', '=', False)]}"
