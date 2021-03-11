@@ -23,10 +23,10 @@
                     name="export_invoice"
                     string="Resend eBill"
                     type="object"
-                    attrs="{'invisible':['|', '|', '|', '|', ('send_through_http', '=', False), ('state', '!=', 'posted'), ('invoice_export_confirmed', '=', True), ('invoice_exported', '=', False), ('type', 'not in', ('out_invoice', 'out_refund'))]}"
+                    attrs="{'invisible':['|', '|', '|', ('send_through_http', '=', False), ('state', '!=', 'posted'), ('invoice_exported', '=', False), ('type', 'not in', ('out_invoice', 'out_refund'))]}"
                     groups="base.group_user"
                     class="oe_highlight"
-                    confirm="Ebill has already been sent, but has not yet been accpeted by the distant system. Are you sure you want to send it again ?"
+                    confirm="Ebill has already been sent. Are you sure you want to send it again ?"
                 />
             </button>
         </field>
