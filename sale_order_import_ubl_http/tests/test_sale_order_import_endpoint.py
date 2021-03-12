@@ -41,7 +41,7 @@ class TestSaleOrderImportEndpoint(SingleTransactionCase):
             )
         order_ref = res.split(" ")[2]
         new_order = self.env["sale.order"].search([("name", "=", order_ref)])
-        self.assertEqual(new_order.state, "sale")
+        self.assertEqual(new_order.state, "draft")
 
     def test_api_key_validity(self):
         """ Check auth key validity."""
