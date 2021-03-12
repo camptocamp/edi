@@ -30,7 +30,8 @@ class SaleOrder(models.Model):
         elif action_xmlid == "sale.action_quotations":
             order_id = res["res_id"]
             order = self.env["sale.order"].browse(order_id)
-            order.action_confirm()
+            if self.company_id.sale_order_ubl_import_http_confirmed:
+                order.action_confirm()
             return _("Sales order {} created").format(order.name)
         else:
             raise UserError(_("Something went wrong with the importing wizard."))
