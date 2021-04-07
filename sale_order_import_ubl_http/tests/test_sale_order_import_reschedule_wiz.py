@@ -1,31 +1,14 @@
 # Copyright 2021 Camptocamp SA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
-import os
 
 import mock
 
 from odoo import exceptions
-from odoo.tests.common import SavepointCase
+
+from .common import TestSaleOrderImportCommon
 
 
-class TestSaleOrderImportController(SavepointCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
-        cls.file_model = cls.env["sale.order.ubl.import.file"]
-        path = os.path.join(
-            os.path.dirname(__file__), "examples", "UBL-Order-2.0-Example.xml",
-        )
-        with open(path, "rb") as file:
-            cls.test_file_data = file.read()
-        cls.test_file = cls.file_model._quick_create(
-            cls.test_file_data, "import_ubl_from_http"
-        )
-
-    def _search_files(self, domain=None):
-        return self.file_model.with_context(active_test=False).search(domain or [])
-
+class TestSaleOrderImportController(TestSaleOrderImportCommon):
     def _get_wiz(self, afile):
         return self.env["sale.order.import.http.reschedule.wiz"].create(
             {"file_id": afile.id}
@@ -91,6 +74,7 @@ class TestSaleOrderImportController(SavepointCase):
                     "mimetype": "application/xml",
                     "res_model": "sale.order",
                     "job_id": new_job.id,
+                    "parent_id": self.test_file.id,
                 }
             ],
         )
