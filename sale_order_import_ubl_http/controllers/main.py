@@ -1,4 +1,6 @@
 # Copyright 2020 Camptocamp SA
+# @author Thierry Ducrest <thierry.ducrest@camptocamp.com>
+# @author Simone Orsi <simahawk@gmail.com>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
 import werkzeug
@@ -45,12 +47,17 @@ class ImportController(http.Controller):
         if "description" not in job_values:
             job_values["description"] = "Import UBL order from http"
 
+        import_file = self._create_import_file(env, xml_data, method_name)
         model = env["sale.order"].with_delay(**job_values)
-        getattr(model, method_name)(xml_data.decode("utf-8"))
+        job = getattr(model, method_name)(import_file)
+        import_file.job_id = job.db_record()
         final_message = (
             final_message or "Thank you. Your order will be processed, shortly"
         )
         return final_message
+
+    def _create_import_file(self, env, xml_data, method_name):
+        return env["sale.order.ubl.import.file"]._quick_create(xml_data, method_name)
 
     def check_data_to_import(self, env, data):
         """ Check the data received looks valid.

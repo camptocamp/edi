@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="sale_order_ubl_import_file_form" model="ir.ui.view">
+        <field name="name">sale.order.ubl.import.file form</field>
+        <field name="model">sale.order.ubl.import.file</field>
+        <field name="arch" type="xml">
+            <form string="UBL SO import file file">
+                <sheet>
+                    <field name="active" invisible="1" />
+                    <widget
+                        name="web_ribbon"
+                        title="Archived"
+                        bg_color="bg-danger"
+                        attrs="{'invisible': [('active', '=', True)]}"
+                    />
+                    <group name="file">
+                        <field name="name" />
+                        <field name="attachment_id" />
+                        <field name="method_name" />
+                        <field name="job_id" />
+                        <field name="job_state" />
+                        <field name="parent_id" />
+                    </group>
+                    <footer>
+                        <button
+                            name="%(ubl_so_import_reschedule_wiz_action)d"
+                            string="Re-schedule"
+                            type="action"
+                            class="oe_highlight"
+                            context="{'default_file_id': active_id}"
+                            attrs="{'invisible': [('job_state', '=', 'failed')]}"
+
+                        />
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="sale_order_ubl_import_file_tree" model="ir.ui.view">
+        <field name="name">sale.order.ubl.import.file tree</field>
+        <field name="model">sale.order.ubl.import.file</field>
+        <field name="arch" type="xml">
+            <tree string="UBL SO import file files"
+                  decoration-danger="job_state == 'failed'">
+              <field name="name" />
+              <field name="method_name" />
+              <field name="job_id" />
+              <field name="job_state" />
+              <field name="parent_id" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="sale_order_ubl_import_file_search" model="ir.ui.view">
+        <field name="name">sale.order.ubl.import.file search</field>
+        <field name="model">sale.order.ubl.import.file</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" />
+                <field name="method_name" />
+                <field name="job_id" />
+                <field name="job_state" />
+                <field name="parent_id" />
+                <filter name="archived" string="Archived" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By...">
+                    <filter
+                        string="Method"
+                        name="group_by_method_name"
+                        domain="[]"
+                        context="{'group_by':'method_name'}"
+                    />
+                    <filter
+                        string="State"
+                        name="group_by_state"
+                        domain="[]"
+                        context="{'group_by':'job_state'}"
+                    />
+                    <filter
+                        string="Parent"
+                        name="group_by_parent_id"
+                        domain="[]"
+                        context="{'group_by':'group_by_parent_id'}"
+                    />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="sale_order_ubl_import_file_view_action" model="ir.actions.act_window">
+        <field name="name">UBL SO import file files</field>
+        <field name="res_model">sale.order.ubl.import.file</field>
+    </record>
+
+    <menuitem
+        id="sale_order_ubl_import_file_menu"
+        name="UBL SO import file files"
+        parent="sale.sale_order_menu"
+        action="sale_order_ubl_import_file_view_action"
+    />
+</odoo>

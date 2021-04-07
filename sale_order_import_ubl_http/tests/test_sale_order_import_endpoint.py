@@ -23,6 +23,7 @@ class TestSaleOrderImportEndpoint(SingleTransactionCase):
         with self.assertRaises(BadRequest):
             self.controller.check_data_to_import(self.env, data)
 
+    # FIXME
     def test_import_so_ubl(self):
         user = self.env.ref("sale_order_import_ubl_http.user_endpoint")
         path = os.path.join(

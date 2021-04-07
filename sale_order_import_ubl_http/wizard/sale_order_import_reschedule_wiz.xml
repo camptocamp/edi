@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="ubl_so_import_reschedule_wiz_form" model="ir.ui.view">
+        <field name="model">sale.order.import.http.reschedule.wiz</field>
+        <field name="arch" type="xml">
+            <form string="Reschedule SO import via UBL file">
+                <group name="file">
+                    <field name="file_id" />
+                    <div class="alert alert-info" role="alert">
+                      Edit the content of the XML and schedule another import job.
+                      A new import file will be created to preserve the old one.
+                    </div>
+                    <field name="xml_data" required="1" widget="ace" />
+                    <field name="job_channel" />
+                </group>
+                <footer>
+                    <button
+                        name="action_execute"
+                        string="Confirm"
+                        type="object"
+                        class="oe_highlight"
+                    />
+                    <button string="Cancel" class="oe_link" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="ubl_so_import_reschedule_wiz_action" model="ir.actions.act_window">
+        <field name="name">Re-schedule UBL SO import</field>
+        <field name="res_model">sale.order.import.http.reschedule.wiz</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_sale_order_ubl_import_file" />
+    </record>
+</odoo>
