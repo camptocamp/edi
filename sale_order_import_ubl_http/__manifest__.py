@@ -17,6 +17,7 @@
         "data/queue_job_function.xml",
         "data/res_users.xml",
         "data/ir_sequence.xml",
+        "security/ir.model.access.csv",
         "wizard/sale_order_import_reschedule_wiz.xml",
         "views/res_config_settings.xml",
         "views/sale_order_ubl_import_file_view.xml",

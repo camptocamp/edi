@@ -28,8 +28,7 @@
                             type="action"
                             class="oe_highlight"
                             context="{'default_file_id': active_id}"
-                            attrs="{'invisible': [('job_state', '=', 'failed')]}"
-
+                            attrs="{'invisible': [('job_state', '!=', 'failed')]}"
                         />
                     </footer>
                 </sheet>
@@ -42,6 +41,7 @@
         <field name="model">sale.order.ubl.import.file</field>
         <field name="arch" type="xml">
             <tree string="UBL SO import file files"
+                  create="0"
                   decoration-danger="job_state == 'failed'">
               <field name="name" />
               <field name="method_name" />
@@ -58,7 +58,7 @@
         <field name="arch" type="xml">
             <search>
                 <field name="name" />
-                <field name="method_name" />
+                <!-- <field name="method_name" />
                 <field name="job_id" />
                 <field name="job_state" />
                 <field name="parent_id" />
@@ -82,7 +82,7 @@
                         domain="[]"
                         context="{'group_by':'group_by_parent_id'}"
                     />
-                </group>
+                </group> -->
             </search>
         </field>
     </record>
@@ -90,6 +90,9 @@
     <record id="sale_order_ubl_import_file_view_action" model="ir.actions.act_window">
         <field name="name">UBL SO import file files</field>
         <field name="res_model">sale.order.ubl.import.file</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="sale_order_ubl_import_file_search" />
+        <field name="target">current</field>
     </record>
 
     <menuitem
@@ -97,5 +100,6 @@
         name="UBL SO import file files"
         parent="sale.sale_order_menu"
         action="sale_order_ubl_import_file_view_action"
+        sequence="999"
     />
 </odoo>

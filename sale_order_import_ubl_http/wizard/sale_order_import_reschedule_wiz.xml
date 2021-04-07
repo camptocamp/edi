@@ -4,15 +4,24 @@
         <field name="model">sale.order.import.http.reschedule.wiz</field>
         <field name="arch" type="xml">
             <form string="Reschedule SO import via UBL file">
-                <group name="file">
-                    <field name="file_id" />
-                    <div class="alert alert-info" role="alert">
-                      Edit the content of the XML and schedule another import job.
-                      A new import file will be created to preserve the old one.
-                    </div>
-                    <field name="xml_data" required="1" widget="ace" />
-                    <field name="job_channel" />
+                <group>
+                    <group name="file">
+                        <field name="file_id" readonly="1" />
+                        <div class="alert alert-info" role="alert">
+                        Edit the content of the XML and schedule another import job.
+                        A new import file will be created to preserve the old one.
+                        </div>
+                        <field name="job_channel" />
+                        <separator string="XML" />
+                    </group>
                 </group>
+                <field
+                    name="xml_data"
+                    required="1"
+                    widget="ace"
+                    nolabel="1"
+                    colspan="4"
+                />
                 <footer>
                     <button
                         name="action_execute"
