@@ -497,11 +497,12 @@ class AccountInvoiceImport(models.TransientModel):
         """
         return False
 
+    @api.multi
     def import_invoice(self):
         """Method called by the button of the wizard
         (import step AND config step)"""
         self.ensure_one()
-        aio = self.env["account.move"]
+        aio = self.env["account.invoice"]
         aiico = self.env["account.invoice.import.config"]
         bdio = self.env["business.document.import"]
         iaao = self.env["ir.actions.act_window"]
