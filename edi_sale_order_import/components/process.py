@@ -18,6 +18,10 @@ class EDIExchangeSOInput(Component):
     _inherit = "edi.component.input.mixin"
     _usage = "input.process.sale.order"
 
+    def __init__(self, work_context):
+        super().__init__(work_context)
+        self.settings = self.type_settings.get("sale_order_import", {})
+
     def process(self):
         wiz = self._setup_wizard()
         res = wiz.import_order_button()
@@ -38,7 +42,8 @@ class EDIExchangeSOInput(Component):
 
     def _setup_wizard(self):
         """Init a `sale.order.import` instance for current record."""
-        wiz = self.env["sale.order.import"].sudo().create({})
+        ctx = self.settings.get("wiz_ctx", {})
+        wiz = self.env["sale.order.import"].with_context(ctx).sudo().create({})
         wiz.order_file = self.exchange_record._get_file_content(binary=False)
         wiz.order_filename = self.exchange_record.exchange_filename
         wiz.order_file_change()
@@ -50,5 +55,4 @@ class EDIExchangeSOInput(Component):
         return "pricelist"
 
     def _order_should_be_confirmed(self):
-        settings = self.exchange_record.type_id.get_settings()
-        return settings.get("sale_order", {}).get("confirm_order")
+        return self.settings.get("confirm_order", False)
