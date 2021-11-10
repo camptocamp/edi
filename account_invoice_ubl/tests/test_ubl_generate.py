@@ -3,15 +3,23 @@
 # Copyright 2019 Onestein (<https://www.onestein.eu>)
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
-from odoo.tests.common import HttpCase
+from odoo.tests.common import SavepointCase
+from odoo.tools import mute_logger
 
 from ..hooks import (
     remove_ubl_xml_format_in_pdf_invoice,
     set_xml_format_in_pdf_invoice_to_ubl,
 )
 
+LOGGER = "odoo.addons.account_invoice_ubl.models.account_move"
 
-class TestUblInvoice(HttpCase):
+
+class TestUblInvoice(SavepointCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
+
     def test_only_create_invoice(
         self, product=False, qty=1, price=12.42, discount=0, validate=True
     ):
@@ -84,12 +92,13 @@ class TestUblInvoice(HttpCase):
             pdf_file = (
                 self.env.ref("account.account_invoices")
                 .with_context(ubl_version=version, force_report_rendering=True)
-                .render_qweb_pdf(invoice.ids)[0]
+                ._render_qweb_pdf(invoice.ids)[0]
             )
             res = self.env["base.ubl"].get_xml_files_from_pdf(pdf_file)
             invoice_filename = invoice.get_ubl_filename(version=version)
             self.assertTrue(invoice_filename in res)
 
+    @mute_logger(LOGGER)
     def test_attach_ubl_xml_file_button(self):
         invoice = self.test_only_create_invoice()
         if invoice.company_id.xml_format_in_pdf_invoice != "ubl":
