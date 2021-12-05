@@ -10,13 +10,14 @@ from odoo_test_helper import FakeModelLoader
 
 from odoo.tests.common import Form
 
-from .common import EDIBackendCommonTestCase
+from .common import EDIBackendCommonComponentRegistryTestCase
 
 
 # This clashes w/ some setup (eg: run tests w/ pytest when edi_storage is installed)
 # If you still want to run `edi` tests w/ pytest when this happens, set this env var.
 @unittest.skipIf(os.getenv("SKIP_EDI_CONSUMER_CASE"), "Consumer test case disabled.")
-class TestConsumerMixinCase(EDIBackendCommonTestCase):
+class TestConsumerMixinCase(EDIBackendCommonComponentRegistryTestCase):
+    # pylint: disable=W8110
     @classmethod
     def _setup_records(cls):
         super()._setup_records()
@@ -59,7 +60,7 @@ class TestConsumerMixinCase(EDIBackendCommonTestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.loader.restore_registry()
+        cls._teardown_registry(cls)
         super().tearDownClass()
 
     def test_mixin(self):
