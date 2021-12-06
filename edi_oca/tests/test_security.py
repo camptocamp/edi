@@ -6,10 +6,10 @@ from odoo_test_helper import FakeModelLoader
 
 from odoo.exceptions import AccessError
 
-from .common import EDIBackendCommonComponentRegistryTestCase
+from .common import EDIBackendCommonTestCase
 
 
-class TestEDIExchangeRecordSecurity(EDIBackendCommonComponentRegistryTestCase):
+class TestEDIExchangeRecordSecurity(EDIBackendCommonTestCase):
     # pylint: disable=W8110
     @classmethod
     def _setup_records(cls):
@@ -60,7 +60,7 @@ class TestEDIExchangeRecordSecurity(EDIBackendCommonComponentRegistryTestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls._teardown_registry(cls)
+        cls.loader.restore_registry()
         super().tearDownClass()
 
     def create_record(self, user=False):
