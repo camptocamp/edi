@@ -269,6 +269,7 @@ class BusinessDocumentImport(models.AbstractModel):
         iban = iban.replace(' ', '').upper()
         rpbo = self.env['res.partner.bank']
         rbo = self.env['res.bank']
+        import pdb; pdb.set_trace()
         try:
             validate_iban(iban)
         except:
@@ -281,9 +282,12 @@ class BusinessDocumentImport(models.AbstractModel):
             '|', ('company_id', '=', False),
             ('company_id', '=', company_id),
             ('sanitized_acc_number', '=', iban),
+            '|', ('partner_id', '=', False),
             ('partner_id', '=', partner.id),
             ])
         if bankaccounts:
+            if not bankaccounts[0].partner_id:
+                bankaccounts[0].partner_id = partner
             return bankaccounts[0]
         elif create_if_not_found:
             bank_id = False
