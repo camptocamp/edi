@@ -4,7 +4,7 @@
 
 import logging
 
-from odoo import _, api, exceptions, fields, http, models
+from odoo import _, api, exceptions, fields, http, models, modules
 
 # from odoo.addons.base_sparse_field.models.fields import Serialized
 from ..registry import EndpointRegistry
@@ -202,14 +202,17 @@ class EndpointRouteHandler(models.AbstractModel):
         return res
 
     def _handle_route_updates(self, vals):
-        if "active" in vals:
-            if vals["active"]:
-                self._register_controllers()
-            else:
-                self._unregister_controllers()
+        if "active" in vals and vals["active"]:
+            self._unregister_controllers()
+            self._register_controllers()
             return True
         if any([x in vals for x in self._controller_fields()]):
+            self._unregister_controllers()
             self._register_controllers()
+            # api.Environment.reset()
+            # self.env.registry.registry_invalidated = True
+            modules.registry.Registry.new(self._cr.dbname, update_module=True)
+            self.env.registry.signal_changes()
             return True
         return False
 

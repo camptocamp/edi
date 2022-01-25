@@ -3,6 +3,7 @@
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 
 _REGISTRY_BY_DB = {}
+import time;
 
 
 class EndpointRegistry:
@@ -11,19 +12,16 @@ class EndpointRegistry:
     Used to:
 
     * track registered endpoints
-    * track routes to be updated for specific ir.http instances
     * retrieve routing rules to load in ir.http routing map
     """
 
-    __slots__ = ("_mapping", "_http_ids", "_http_ids_to_update")
+    __slots__ = ("_mapping", "_updated_on")
 
     def __init__(self):
         # collect EndpointRule objects
         self._mapping = {}
-        # collect ids of ir.http instances
-        self._http_ids = set()
-        # collect ids of ir.http instances that need update
-        self._http_ids_to_update = set()
+        # timestamp of last update
+        self._updated_on = 0.0
 
     def get_rules(self):
         return self._mapping.values()
@@ -58,19 +56,21 @@ class EndpointRegistry:
     def drop_rule(self, key):
         existing = self._mapping.pop(key, None)
         if not existing:
+            print("DROP not existing")
             return False
+        print("DROP refresh")
         self._refresh_update_required()
         return True
 
-    def routing_update_required(self, http_id):
-        return http_id in self._http_ids_to_update
+    def routing_update_required(self, ts):
+        if not ts:
+            return True
+        return ts < self._updated_on
 
     def _refresh_update_required(self):
-        for http_id in self._http_ids:
-            self._http_ids_to_update.add(http_id)
-
-    def reset_update_required(self, http_id):
-        self._http_ids_to_update.discard(http_id)
+        self._updated_on = time.time()
+        print("*******************************")
+        print("UPDATED ON", self._updated_on)
 
     @classmethod
     def registry_for(cls, dbname):
@@ -82,12 +82,6 @@ class EndpointRegistry:
     def wipe_registry_for(cls, dbname):
         if dbname in _REGISTRY_BY_DB:
             del _REGISTRY_BY_DB[dbname]
-
-    def ir_http_track(self, _id):
-        self._http_ids.add(_id)
-
-    def ir_http_seen(self, _id):
-        return _id in self._http_ids
 
     @staticmethod
     def make_rule(*a, **kw):
