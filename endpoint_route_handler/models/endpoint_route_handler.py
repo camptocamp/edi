@@ -2,6 +2,7 @@
 # @author: Simone Orsi <simone.orsi@camptocamp.com>
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 
+import functools
 import logging
 
 from odoo import _, api, exceptions, fields, http, models, modules
@@ -202,19 +203,34 @@ class EndpointRouteHandler(models.AbstractModel):
         return res
 
     def _handle_route_updates(self, vals):
-        if "active" in vals and vals["active"]:
+        if any([x in vals for x in self._controller_fields() + ["active"]]):
             self._unregister_controllers()
-            self._register_controllers()
-            return True
-        if any([x in vals for x in self._controller_fields()]):
-            self._unregister_controllers()
-            self._register_controllers()
-            # api.Environment.reset()
-            # self.env.registry.registry_invalidated = True
-            modules.registry.Registry.new(self._cr.dbname, update_module=True)
-            self.env.registry.signal_changes()
+            self._register_controllers(reload_workers=True)
             return True
         return False
+
+    def _reload_http_workers(self):
+        self._cr.commit()
+        api.Environment.reset()
+        modules.registry.Registry.new(self._cr.dbname, update_module=True)
+        self._cr.commit()
+        # self.env.cr.after(
+        #     "commit",
+        #     functools.partial(self._reload_http_workers_after_commit_hook, self._cr.dbname)
+        # )
+
+    def _reload_http_workers_after_commit_hook(self, dbname):
+        """Reload processes so they get their endpoints refreshed.
+
+        This method is called after the current transaction is committed.
+        """
+        # api.Environment.reset()
+        # self.env.registry.registry_invalidated = True
+        self._logger.warning("RELOAD HTTP WORKERS")
+        __import__("pdb").set_trace()
+        registry = modules.registry.Registry.new(dbname, update_module=False)
+        registry.registry_invalidated = True
+        registry.signal_changes()
 
     def unlink(self):
         if not self._abstract:
@@ -229,17 +245,21 @@ class EndpointRouteHandler(models.AbstractModel):
             # since this piece of code runs only when the model is loaded.
             self.search([("active", "=", True)])._register_controllers(init=True)
 
-    def _register_controllers(self, init=False):
+    def _register_controllers(self, init=False, reload_workers=False):
         if self._abstract:
             self._refresh_endpoint_data()
         for rec in self:
             rec._register_controller(init=init)
+        if not init and reload_workers:
+            self._reload_http_workers()
 
-    def _unregister_controllers(self):
+    def _unregister_controllers(self, reload_workers=False):
         if self._abstract:
             self._refresh_endpoint_data()
         for rec in self:
             rec._unregister_controller()
+        if reload_workers:
+            self._reload_http_workers()
 
     def _refresh_endpoint_data(self):
         """Enforce refresh of route computed fields.
