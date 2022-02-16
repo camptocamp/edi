@@ -1010,15 +1010,15 @@ class BusinessDocumentImport(models.AbstractModel):
             precision_digits=qty_precision,
         ):
             values["qty"] = [existing_line["qty"], iline["qty"]]
-            if "price_unit" in iline and float_compare(
-                iline["price_unit"],
+        if "price_unit" in iline and float_compare(
+            iline["price_unit"],
+            existing_line["price_unit"],
+            precision_digits=price_precision,
+        ):
+            values["price_unit"] = [
                 existing_line["price_unit"],
-                precision_digits=price_precision,
-            ):
-                values["price_unit"] = [
-                    existing_line["price_unit"],
-                    iline["price_unit"],
-                ]
+                iline["price_unit"],
+            ]
         return values
 
     def _prepare_account_speed_dict(self):
