@@ -245,10 +245,13 @@ class SaleOrderImport(models.TransientModel):
                     )
                 )
 
-        so_vals = {
-            "partner_id": partner.id,
-            "client_order_ref": parsed_order.get("order_ref"),
-        }
+        so_vals = soo.default_get(soo._fields.keys())
+        so_vals.update(
+            {
+                "partner_id": partner.id,
+                "client_order_ref": parsed_order.get("order_ref"),
+            }
+        )
         so_vals = soo.play_onchanges(so_vals, ["partner_id"])
         so_vals["order_line"] = []
         if parsed_order.get("ship_to"):
@@ -439,11 +442,24 @@ class SaleOrderImport(models.TransientModel):
         """the 'order' arg can be a recordset (in case of an update of a sale order)
         or a dict (in case of the creation of a new sale order)"""
         solo = self.env["sale.order.line"]
-        vals = {
-            "product_id": product.id,
-            "product_uom_qty": import_line["qty"],
-            "product_uom": uom.id,
-        }
+        vals = solo.default_get(solo._fields.keys())
+        # Ensure the company is loaded before we play onchanges.
+        # Yes, `company_id` is related to `order_id.company_id`
+        # but when we call `play_onchanges` it will be empty
+        # w/out this precaution.
+        company_id = self.env.company.id
+        if isinstance(order, models.Model):
+            company_id = order.company_id.id
+        elif isinstance(order, dict):
+            company_id = order.get("company_id") or company_id
+        vals.update(
+            {
+                "product_id": product.id,
+                "product_uom_qty": import_line["qty"],
+                "product_uom": uom.id,
+                "company_id": company_id,
+            }
+        )
         if price_source == "order":
             vals["price_unit"] = import_line["price_unit"]  # TODO : fix
         elif price_source == "pricelist":
