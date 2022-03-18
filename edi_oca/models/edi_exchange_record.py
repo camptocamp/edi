@@ -179,7 +179,7 @@ class EDIExchangeRecord(models.Model):
             return None
         if not self.model and self.parent_id:
             return self.parent_id.record
-        return self.env[self.model].browse(self.res_id)
+        return self.env[self.model].browse(self.res_id).exists()
 
     def _set_file_content(
         self, output_string, encoding="utf-8", field_name="exchange_file"
