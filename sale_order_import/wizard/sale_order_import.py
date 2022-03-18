@@ -244,8 +244,9 @@ class SaleOrderImport(models.TransientModel):
                         existing_orders[0].state,
                     )
                 )
-
-        so_vals = soo.default_get(soo._fields.keys())
+        # FIXME: test all values before and after this change
+        # so_vals = soo.default_get(soo._fields.keys())
+        so_vals = {}
         so_vals.update(
             {
                 "partner_id": partner.id,
@@ -442,7 +443,11 @@ class SaleOrderImport(models.TransientModel):
         """the 'order' arg can be a recordset (in case of an update of a sale order)
         or a dict (in case of the creation of a new sale order)"""
         solo = self.env["sale.order.line"]
-        vals = solo.default_get(solo._fields.keys())
+        # FIXME: test all values before and after this change
+        # Somehow, prices are not computed anymore,
+        # probably because the price is set to 0.0.
+        # vals = solo.default_get(solo._fields.keys())
+        vals = {}
         # Ensure the company is loaded before we play onchanges.
         # Yes, `company_id` is related to `order_id.company_id`
         # but when we call `play_onchanges` it will be empty
