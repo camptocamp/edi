@@ -2,10 +2,12 @@
 # Copyright 2022 Camptocamp
 # @author: Simone Orsi <simahawk@gmail.com>
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
-
+import logging
 from pathlib import PurePath
 
 from odoo.addons.component.core import AbstractComponent
+
+_logger = logging.getLogger(__file__)
 
 
 class EDIStorageComponentMixin(AbstractComponent):
@@ -45,7 +47,7 @@ class EDIStorageComponentMixin(AbstractComponent):
             (self.backend[direction + "_dir_" + state] or "").strip().rstrip("/")
         )
 
-    def _remote_file_path(self, direction, state, filename, prefix=None):
+    def _make_remote_file_path(self, direction, state, filename, prefix=None):
         """Return remote file path by direction and state for give filename.
 
         :param direction: string stating direction of the exchange
@@ -58,6 +60,21 @@ class EDIStorageComponentMixin(AbstractComponent):
             path = prefix / path
         return path
 
+    def _remote_file_path(self, *pargs, **kwargs):
+        # TODO: drop this in v15 or v16
+        _logger.warning("`_remote_file_path` is deprecated: use _make_remote_file_path")
+        return self._make_remote_file_path(*pargs, **kwargs)
+
+    def _get_remote_file_path(self, state, filename=None):
+        """Retrieve remote path for current exchange record."""
+        filename = filename or self.exchange_record.exchange_filename
+        direction = self.exchange_record.direction
+        path_prefix = self._get_exchange_type_path()
+        path = self._make_remote_file_path(
+            direction, state, filename, prefix=path_prefix
+        )
+        return path
+
     def _get_remote_file(self, state, filename=None, binary=False):
         """Get file for current exchange_record in the given destination state.
 
@@ -65,11 +82,7 @@ class EDIStorageComponentMixin(AbstractComponent):
         :param filename: custom file name, exchange_record filename used by default
         :return: remote file content as string
         """
-        filename = filename or self.exchange_record.exchange_filename
-        path_prefix = self._get_exchange_type_path()
-        path = self._remote_file_path(
-            self.exchange_record.direction, state, filename, prefix=path_prefix
-        )
+        path = self._get_remote_file_path(state, filename=filename)
         try:
             # TODO: support match via pattern (eg: filename-prefix-*)
             # otherwise is impossible to retrieve input files and acks

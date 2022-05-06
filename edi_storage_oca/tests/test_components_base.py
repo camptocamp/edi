@@ -18,14 +18,14 @@ class EDIStorageComponentTestCase(TestEDIStorageBase):
             (("output", "error", "foo.csv"), "demo_out/error/foo.csv"),
         )
         for _args, expected in to_test:
-            path_obj = self.checker._remote_file_path(*_args)
+            path_obj = self.checker._make_remote_file_path(*_args)
             self.assertEqual(path_obj.as_posix(), expected)
 
         with self.assertRaises(AssertionError):
-            self.checker._remote_file_path("WHATEVER", "error", "foo.csv")
+            self.checker._make_remote_file_path("WHATEVER", "error", "foo.csv")
 
         with self.assertRaises(AssertionError):
-            self.checker._remote_file_path("input", "WHATEVER", "foo.csv")
+            self.checker._make_remote_file_path("input", "WHATEVER", "foo.csv")
 
     def test_get_remote_file(self):
         with mock.patch(STORAGE_BACKEND_MOCK_PATH + ".get") as mocked:
