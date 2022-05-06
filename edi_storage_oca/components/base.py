@@ -15,6 +15,10 @@ class EDIStorageComponentMixin(AbstractComponent):
     # If the value is not set, generic components will be used.
     _storage_backend_type = None
 
+    def __init__(self, work_context):
+        super().__init__(work_context)
+        self.storage_settings = self.type_settings.get("storage", {})
+
     @classmethod
     def _component_match(cls, work, usage=None, model_name=None, **kw):
         res = super()._component_match(work, usage=usage, model_name=model_name, **kw)
