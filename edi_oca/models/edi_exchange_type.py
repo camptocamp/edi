@@ -2,8 +2,12 @@
 # @author Simone Orsi <simahawk@gmail.com>
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 import logging
+from datetime import datetime
+
+from pytz import timezone, utc
 
 from odoo import _, api, exceptions, fields, models
+from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT as DATETIME_FORMAT
 
 from odoo.addons.base_sparse_field.models.fields import Serialized
 from odoo.addons.http_routing.models.ir_http import slugify
@@ -87,11 +91,18 @@ class EDIExchangeType(models.Model):
                 process:
                   usage: $comp_usage
 
+              filename_pattern:
+                force_tz: Europe/Rome
+                date_pattern: %Y-%m-%d-%H-%M-%S
+
             In any case, you can use these settings
             to provide your own configuration for whatever need you might have.
         """,
     )
     advanced_settings = Serialized(default={}, compute="_compute_advanced_settings")
+    filename_pattern_settings = Serialized(
+        default={}, compute="_compute_advanced_settings"
+    )
     model_ids = fields.Many2many(
         "ir.model",
         help="""Modules to be checked for manual EDI generation""",
@@ -119,6 +130,9 @@ class EDIExchangeType(models.Model):
     def _compute_advanced_settings(self):
         for rec in self:
             rec.advanced_settings = rec._load_advanced_settings()
+            rec.filename_pattern_settings = rec.advanced_settings.get(
+                "filename_pattern", {}
+            )
 
     def _load_advanced_settings(self):
         return yaml.safe_load(self.advanced_settings_edit or "") or {}
@@ -134,12 +148,21 @@ class EDIExchangeType(models.Model):
             if rec.backend_id.backend_type_id != rec.backend_type_id:
                 raise exceptions.UserError(_("Backend should respect backend type!"))
 
+    def _make_exchange_filename_datetime(self):
+        self.ensure_one()
+        pattern_settings = self.filename_pattern_settings
+        force_tz = pattern_settings.get("force_tz", self.env.user.tz)
+        date_pattern = pattern_settings.get("date_pattern", DATETIME_FORMAT)
+        tz = timezone(force_tz) if force_tz else None
+        now = datetime.now(utc).astimezone(tz)
+        return slugify(now.strftime(date_pattern))
+
     def _make_exchange_filename(self, exchange_record):
         """Generate filename."""
         pattern = self.exchange_filename_pattern
         ext = self.exchange_file_ext
         pattern = pattern + ".{ext}"
-        dt = slugify(fields.Datetime.to_string(fields.Datetime.now()))
+        dt = self._make_exchange_filename_datetime()
         record_name = self._get_record_name(exchange_record)
         record = exchange_record
         if exchange_record.model and exchange_record.res_id:
