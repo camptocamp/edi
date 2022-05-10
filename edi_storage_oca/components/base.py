@@ -115,4 +115,5 @@ class EDIStorageComponentMixin(AbstractComponent):
         if path_config_param:
             icp = self.env["ir.config_parameter"].sudo()
             path = icp.get_param(path_config_param)
-            return PurePath(path)
+            if path:
+                return PurePath(path)
