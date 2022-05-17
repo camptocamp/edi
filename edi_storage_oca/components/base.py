@@ -89,6 +89,16 @@ class EDIStorageComponentMixin(AbstractComponent):
             # (the date will never match)
             return self.storage.get(path.as_posix(), binary=binary)
         except FileNotFoundError:
+            _logger.info(
+                f"Ignored FileNotFoundError when trying to "
+                f"get file {filename} into path {path} for state {state}"
+            )
+            return None
+        except OSError:
+            _logger.info(
+                f"Ignored OSError when trying to "
+                f"get file {filename} into path {path} for state {state}"
+            )
             return None
 
     def _get_exchange_type_path(self):
