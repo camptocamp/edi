@@ -69,7 +69,7 @@ class EDIStorageComponentMixin(AbstractComponent):
         """Retrieve remote path for current exchange record."""
         filename = filename or self.exchange_record.exchange_filename
         direction = self.exchange_record.direction
-        path_prefix = self._get_exchange_type_path()
+        path_prefix = self.exchange_record.type_id._get_exchange_type_path()
         path = self._make_remote_file_path(
             direction, state, filename, prefix=path_prefix
         )
@@ -90,30 +90,3 @@ class EDIStorageComponentMixin(AbstractComponent):
             return self.storage.get(path.as_posix(), binary=binary)
         except FileNotFoundError:
             return None
-
-    def _get_exchange_type_path(self):
-        """Retrieve specific path for current exchange type.
-
-        In your exchange type you can pass this config:
-
-            storage:
-                # simple string
-                path: path/to/file
-
-        Or
-
-            storage:
-                # name of the param containing the path
-                path_config_param: path/to/file
-
-        Thanks to the param you could even configure it by env.
-        """
-        path = self.storage_settings.get("path")
-        if path:
-            return PurePath(path)
-        path_config_param = self.storage_settings.get("path_config_param")
-        if path_config_param:
-            icp = self.env["ir.config_parameter"].sudo()
-            path = icp.get_param(path_config_param)
-            if path:
-                return PurePath(path)

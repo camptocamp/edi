@@ -145,55 +145,16 @@ class EDIBackend(models.Model):
         _logger.debug("%s: new exchange record generated.", self.name)
         return record.identifier
 
-    def _get_exchange_type_path(self, storage_settings):
-        """Retrieve specific path for current exchange type.
-
-        In your exchange type you can pass this config:
-
-            storage:
-                # simple string
-                path: path/to/file
-
-        Or
-
-            storage:
-                # name of the param containing the path
-                path_config_param: path/to/file
-
-        Thanks to the param you could even configure it by env.
-        """
-        path = storage_settings.get("path")
-        if path:
-            return PurePath(path)
-        path_config_param = storage_settings.get("path_config_param")
-        if path_config_param:
-            icp = self.env["ir.config_parameter"].sudo()
-            path = icp.get_param(path_config_param)
-            if path:
-                return PurePath(path)
-
-    def _get_full_input_dir_pending(self, exchange_type):
-        type_settings = exchange_type.get_settings()
-        storage_settings = type_settings.get("storage", {})
-
-        path_prefix = self._get_exchange_type_path(storage_settings)
-
-        path = PurePath((self.input_dir_pending or "").strip().rstrip("/"))
-        if path_prefix:
-            path = path_prefix / path
-        return path.as_posix()
-
     def _storage_get_input_filenames(self, exchange_type):
+        full_input_dir_pending = exchange_type._get_full_exchange_type_path(self.input_dir_pending)
         if not exchange_type.exchange_filename_pattern:
-            # If there is not patter, return everything
-            full_input_dir_pending = self._get_full_input_dir_pending(exchange_type)
+            # If there is not pattern, return everything
             return self.storage_id.list_files(full_input_dir_pending)
 
         bits = [exchange_type.exchange_filename_pattern]
         if exchange_type.exchange_file_ext:
             bits.append(r"\." + exchange_type.exchange_file_ext)
         pattern = "".join(bits)
-        full_input_dir_pending = self._get_full_input_dir_pending(exchange_type)
         full_paths = self.storage_id.find_files(pattern, full_input_dir_pending)
         pending_path_len = len(full_input_dir_pending)
         return [p[pending_path_len:].strip("/") for p in full_paths]
