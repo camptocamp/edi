@@ -29,20 +29,11 @@ class EdiStorageListener(Component):
             functools.partial(move_func, sftp_filepath, sftp_destination_path),
         )
 
-    def _get_full_input_dir(self, exchange_type, input_dir):
-        path_prefix = exchange_type._get_exchange_type_path()
-
-        path = PurePath((input_dir or "").strip().rstrip("/"))
-        if path_prefix:
-            path = path_prefix / path
-        return path.as_posix()
-
     def on_edi_exchange_done(self, record):
         storage = record.backend_id.storage_id
         res = False
         if record.direction == "input" and storage:
             file = record.exchange_filename
-            # TODO: Search all places we need to use full input/output dir
             pending_dir = record.type_id._get_full_exchange_type_path(record.backend_id.input_dir_pending)
             done_dir = record.type_id._get_full_exchange_type_path(record.backend_id.input_dir_done)
             error_dir = record.type_id._get_full_exchange_type_path(record.backend_id.input_dir_error)
