@@ -7,7 +7,6 @@ import logging
 import os
 
 from odoo import fields, models
-from pathlib import PurePath
 
 _logger = logging.getLogger(__name__)
 
