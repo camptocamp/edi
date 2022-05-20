@@ -34,9 +34,15 @@ class EdiStorageListener(Component):
         res = False
         if record.direction == "input" and storage:
             file = record.exchange_filename
-            pending_dir = record.backend_id.input_dir_pending
-            done_dir = record.backend_id.input_dir_done
-            error_dir = record.backend_id.input_dir_error
+            pending_dir = record.type_id._get_full_exchange_type_path(
+                record.backend_id.input_dir_pending
+            )
+            done_dir = record.type_id._get_full_exchange_type_path(
+                record.backend_id.input_dir_done
+            )
+            error_dir = record.type_id._get_full_exchange_type_path(
+                record.backend_id.input_dir_error
+            )
             if not done_dir:
                 return res
             res = self._move_file(storage, pending_dir, done_dir, file)
@@ -52,8 +58,12 @@ class EdiStorageListener(Component):
         res = False
         if record.direction == "input" and storage:
             file = record.exchange_filename
-            pending_dir = record.backend_id.input_dir_pending
-            error_dir = record.backend_id.input_dir_error
+            pending_dir = record.type_id._get_full_exchange_type_path(
+                record.backend_id.input_dir_pending
+            )
+            error_dir = record.type_id._get_full_exchange_type_path(
+                record.backend_id.input_dir_error
+            )
             if error_dir:
                 res = self._move_file(storage, pending_dir, error_dir, file)
         return res
