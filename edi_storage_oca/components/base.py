@@ -1,4 +1,5 @@
 # Copyright 2020 ACSONE
+# Copyright 2022 Camptocamp
 # @author: Simone Orsi <simahawk@gmail.com>
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 import logging
@@ -42,7 +43,7 @@ class EDIStorageComponentMixin(AbstractComponent):
             (self.backend[direction + "_dir_" + state] or "").strip().rstrip("/")
         )
 
-    def _remote_file_path(self, direction, state, filename):
+    def _make_remote_file_path(self, direction, state, filename, prefix=None):
         """Return remote file path by direction and state for give filename.
 
         :param direction: string stating direction of the exchange
@@ -50,7 +51,20 @@ class EDIStorageComponentMixin(AbstractComponent):
         :param filename: string for file name
         :return: PurePath object
         """
-        return self._dir_by_state(direction, state) / filename.strip("/ ")
+        path = self._dir_by_state(direction, state) / filename.strip("/ ")
+        if prefix:
+            path = prefix / path
+        return path
+
+    def _get_remote_file_path(self, state, filename=None):
+        """Retrieve remote path for current exchange record."""
+        filename = filename or self.exchange_record.exchange_filename
+        direction = self.exchange_record.direction
+        path_prefix = self.exchange_record.type_id._get_exchange_type_path()
+        path = self._make_remote_file_path(
+            direction, state, filename, prefix=path_prefix
+        )
+        return path
 
     def _get_remote_file(self, state, filename=None, binary=False):
         """Get file for current exchange_record in the given destination state.
@@ -59,8 +73,7 @@ class EDIStorageComponentMixin(AbstractComponent):
         :param filename: custom file name, exchange_record filename used by default
         :return: remote file content as string
         """
-        filename = filename or self.exchange_record.exchange_filename
-        path = self._remote_file_path(self.exchange_record.direction, state, filename)
+        path = self._get_remote_file_path(state, filename=filename)
         try:
             # TODO: support match via pattern (eg: filename-prefix-*)
             # otherwise is impossible to retrieve input files and acks
