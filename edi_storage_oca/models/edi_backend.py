@@ -150,7 +150,12 @@ class EDIBackend(models.Model):
         )
         if not exchange_type.exchange_filename_pattern:
             # If there is not pattern, return everything
-            return self.storage_id.list_files(full_input_dir_pending)
+            files = self.storage_id.list_files(full_input_dir_pending)
+            filenames = []
+            for file in files:
+                if file.strip("/"):
+                    filenames.append(file)
+            return filenames
 
         bits = [exchange_type.exchange_filename_pattern]
         if exchange_type.exchange_file_ext:
