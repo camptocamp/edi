@@ -18,10 +18,6 @@ class EDIStorageComponentMixin(AbstractComponent):
     # If the value is not set, generic components will be used.
     _storage_backend_type = None
 
-    def __init__(self, work_context):
-        super().__init__(work_context)
-        self.storage_settings = self.type_settings.get("storage", {})
-
     @classmethod
     def _component_match(cls, work, usage=None, model_name=None, **kw):
         res = super()._component_match(work, usage=usage, model_name=model_name, **kw)
@@ -59,11 +55,6 @@ class EDIStorageComponentMixin(AbstractComponent):
         if prefix:
             path = prefix / path
         return path
-
-    def _remote_file_path(self, *pargs, **kwargs):
-        # TODO: drop this in v15 or v16
-        _logger.warning("`_remote_file_path` is deprecated: use _make_remote_file_path")
-        return self._make_remote_file_path(*pargs, **kwargs)
 
     def _get_remote_file_path(self, state, filename=None):
         """Retrieve remote path for current exchange record."""
