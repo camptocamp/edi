@@ -1,4 +1,7 @@
-# © 2016-2017 Akretion (Alexis de Lattre <alexis.delattre@akretion.com>)
+# Copyright 2016-2017 Akretion
+# @author: Alexis de Lattre <alexis.delattre@akretion.com>
+# Copyright 2022 Camptocamp
+# @author: Simone Orsi <simahawk@gmail.com>
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
 import logging
@@ -53,40 +56,47 @@ class SaleOrderImport(models.TransientModel):
 
     @api.onchange("order_file")
     def order_file_change(self):
-        if self.order_filename and self.order_file:
-            filetype = mimetypes.guess_type(self.order_filename)
-            logger.debug("Order file mimetype: %s", filetype)
-            if filetype and filetype[0] in ("text/csv", "text/plain"):
-                self.csv_import = True
-                self.doc_type = False
-            elif filetype and filetype[0] in ["application/xml", "text/xml"]:
-                self.csv_import = False
-                xml_root, error_msg = self._parse_xml(b64decode(self.order_file))
-                if not len(xml_root) and error_msg:
-                    raise UserError(error_msg)
-                doc_type = self.parse_xml_order(xml_root, detect_doc_type=True)
-                self.doc_type = doc_type
-            elif filetype and filetype[0] == "application/pdf":
-                self.csv_import = False
-                doc_type = self.parse_pdf_order(
-                    b64decode(self.order_file), detect_doc_type=True
-                )
-                self.doc_type = doc_type
-            else:
-                return {
-                    "warning": {
-                        "title": _("Unsupported file format"),
-                        "message": _(
-                            "This file '%s' is not recognised as a CSV, XML nor "
-                            "PDF file. Please check the file and it's "
-                            "extension."
-                        )
-                        % self.order_filename,
-                    }
-                }
-        else:
+        if not self.order_filename or not self.order_file:
             self.csv_import = False
             self.doc_type = False
+            return
+        filetype = mimetypes.guess_type(self.order_filename)
+        logger.debug("Order file mimetype: %s", filetype)
+        mimetype = filetype[0]
+        supported_types = {
+            "CSV": ("text/csv", "text/plain"),
+            "XML": ("application/xml", "text/xml"),
+            "PDF": ("application/pdf"),
+        }
+        if filetype and mimetype in supported_types["CSV"]:
+            self.csv_import = True
+            self.doc_type = False
+        elif filetype and mimetype in supported_types["XML"]:
+            self.csv_import = False
+            xml_root, error_msg = self._parse_xml(b64decode(self.order_file))
+            if (xml_root is None or not len(xml_root)) and error_msg:
+                raise UserError(error_msg)
+            doc_type = self.parse_xml_order(xml_root, detect_doc_type=True)
+            self.doc_type = doc_type
+        elif filetype and mimetype == supported_types["PDF"]:
+            self.csv_import = False
+            doc_type = self.parse_pdf_order(
+                b64decode(self.order_file), detect_doc_type=True
+            )
+            self.doc_type = doc_type
+        else:
+            return {"warning": self._unsupported_file_msg(self.order_filename)}
+
+    def _unsupported_file_msg(self, filename):
+        return {
+            "title": _("Unsupported file format"),
+            "message": _(
+                "This file '%s' is not recognised as a CSV, XML nor "
+                "PDF file. Please check the file and it's "
+                "extension."
+            )
+            % filename,
+        }
 
     @api.model
     def _parse_xml(self, data):
@@ -105,6 +115,7 @@ class SaleOrderImport(models.TransientModel):
             error_msg = _("Unsupported XML document")
         return xml_root, error_msg
 
+    # FIXME: not used at all
     @api.model
     def get_xml_doc_type(self, xml_root):
         raise UserError
@@ -118,6 +129,7 @@ class SaleOrderImport(models.TransientModel):
             )
         )
 
+    # FIXME: not used at all
     @api.model
     def parse_csv_order(self, order_file, partner):
         assert partner, "missing partner"
@@ -133,7 +145,7 @@ class SaleOrderImport(models.TransientModel):
         """
         Get PDF attachments, filter on XML files and call import_order_xml
         """
-        xml_files_dict = self.get_xml_files_from_pdf(order_file)
+        xml_files_dict = self.env["pdf.helper"].pdf_get_xml_files(order_file)
         if not xml_files_dict:
             raise UserError(_("There are no embedded XML file in this PDF file."))
         for xml_filename, xml_root in xml_files_dict.items():
@@ -212,47 +224,14 @@ class SaleOrderImport(models.TransientModel):
         currency = bdio._match_currency(
             parsed_order.get("currency"), parsed_order["chatter_msg"]
         )
-        if partner.property_product_pricelist.currency_id != currency:
-            raise UserError(
-                _(
-                    "The customer '%s' has a pricelist '%s' but the "
-                    "currency of this order is '%s'."
-                )
-                % (
-                    partner.display_name,
-                    partner.property_product_pricelist.display_name,
-                    currency.name,
-                )
-            )
-        if parsed_order.get("order_ref"):
-            commercial_partner = partner.commercial_partner_id
-            existing_orders = soo.search(
-                self._search_existing_order_domain(
-                    parsed_order, commercial_partner, [("state", "!=", "cancel")]
-                )
-            )
-            if existing_orders:
-                raise UserError(
-                    _(
-                        "An order of customer '%s' with reference '%s' "
-                        "already exists: %s (state: %s)"
-                    )
-                    % (
-                        partner.display_name,
-                        parsed_order["order_ref"],
-                        existing_orders[0].name,
-                        existing_orders[0].state,
-                    )
-                )
         # FIXME: this should work but it's not as it breaks core price compute
         # so_vals = soo.default_get(soo._fields.keys())
-        so_vals = {}
-        so_vals.update(
-            {
-                "partner_id": partner.id,
-                "client_order_ref": parsed_order.get("order_ref"),
-            }
-        )
+        so_vals = {
+            "partner_id": partner.id,
+            "client_order_ref": parsed_order.get("order_ref"),
+        }
+        self._validate_currency(partner, currency)
+        self._validate_existing_orders(partner, parsed_order)
         so_vals = soo.play_onchanges(so_vals, ["partner_id"])
         so_vals["order_line"] = []
         if parsed_order.get("ship_to"):
@@ -282,6 +261,44 @@ class SaleOrderImport(models.TransientModel):
             )
             so_vals["order_line"].append((0, 0, line_vals))
         return so_vals
+
+    def _validate_currency(self, partner, currency):
+        if partner.property_product_pricelist.currency_id != currency:
+            raise UserError(
+                _(
+                    "The customer '%s' has a pricelist '%s' but the "
+                    "currency of this order is '%s'."
+                )
+                % (
+                    partner.display_name,
+                    partner.property_product_pricelist.display_name,
+                    currency.name,
+                )
+            )
+
+    def _validate_existing_orders(self, partner, parsed_order):
+        if not parsed_order.get("order_ref"):
+            return
+        commercial_partner = partner.commercial_partner_id
+        existing_orders = self.env["sale.order"].search(
+            self._search_existing_order_domain(
+                parsed_order, commercial_partner, [("state", "!=", "cancel")]
+            ),
+            limit=1,
+        )
+        if existing_orders:
+            raise UserError(
+                _(
+                    "An order of customer '%s' with reference '%s' "
+                    "already exists: %s (state: %s)"
+                )
+                % (
+                    partner.display_name,
+                    parsed_order["order_ref"],
+                    existing_orders[0].name,
+                    existing_orders[0].state,
+                )
+            )
 
     @api.model
     def create_order(self, parsed_order, price_source, order_filename=None):
