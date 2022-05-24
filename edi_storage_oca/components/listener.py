@@ -34,13 +34,13 @@ class EdiStorageListener(Component):
         res = False
         if record.direction == "input" and storage:
             file = record.exchange_filename
-            pending_dir = record.type_id._get_full_exchange_type_path(
+            pending_dir = record.type_id._storage_fullpath(
                 record.backend_id.input_dir_pending
             )
-            done_dir = record.type_id._get_full_exchange_type_path(
+            done_dir = record.type_id._storage_fullpath(
                 record.backend_id.input_dir_done
             )
-            error_dir = record.type_id._get_full_exchange_type_path(
+            error_dir = record.type_id._storage_fullpath(
                 record.backend_id.input_dir_error
             )
             if not done_dir:
@@ -58,10 +58,10 @@ class EdiStorageListener(Component):
         res = False
         if record.direction == "input" and storage:
             file = record.exchange_filename
-            pending_dir = record.type_id._get_full_exchange_type_path(
+            pending_dir = record.type_id._storage_fullpath(
                 record.backend_id.input_dir_pending
             )
-            error_dir = record.type_id._get_full_exchange_type_path(
+            error_dir = record.type_id._storage_fullpath(
                 record.backend_id.input_dir_error
             )
             if error_dir:

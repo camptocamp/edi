@@ -11,7 +11,7 @@ from odoo.addons.base_sparse_field.models.fields import Serialized
 class EDIExchangeType(models.Model):
     _inherit = "edi.exchange.type"
 
-    storage_settings = Serialized(default={}, compute="_compute_storage_settings")
+    storage_settings = Serialized(default={}, compute="_compute_storage_settings", help="Alias to `storage` key in type settings")
 
     # Extend help to explain new usage.
     exchange_filename_pattern = fields.Char(
@@ -31,7 +31,7 @@ class EDIExchangeType(models.Model):
         for rec in self:
             rec.storage_settings = rec.advanced_settings.get("storage", {})
 
-    def _get_exchange_type_path(self):
+    def _storage_path(self):
         """Retrieve specific path for current exchange type.
 
         In your exchange type you can pass this config:
@@ -59,10 +59,12 @@ class EDIExchangeType(models.Model):
             if path:
                 return PurePath(path)
 
-    def _get_full_exchange_type_path(self, directory=None):
+    def _storage_fullpath(self, directory=None, filename=None):
         self.ensure_one()
-        path_prefix = self._get_exchange_type_path()
+        path_prefix = self._storage_path()
         path = PurePath((directory or "").strip().rstrip("/"))
         if path_prefix:
             path = path_prefix / path
+        if filename:
+            path = path / filename.strip("/")
         return path.as_posix()
