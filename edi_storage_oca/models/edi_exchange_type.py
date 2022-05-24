@@ -11,7 +11,11 @@ from odoo.addons.base_sparse_field.models.fields import Serialized
 class EDIExchangeType(models.Model):
     _inherit = "edi.exchange.type"
 
-    storage_settings = Serialized(default={}, compute="_compute_storage_settings", help="Alias to `storage` key in type settings")
+    storage_settings = Serialized(
+        default={},
+        compute="_compute_storage_settings",
+        help="Alias to `storage` key in type settings",
+    )
 
     # Extend help to explain new usage.
     exchange_filename_pattern = fields.Char(

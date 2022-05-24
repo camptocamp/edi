@@ -76,13 +76,13 @@ class TestEDIStorageBase(EDIBackendCommonComponentTestCase):
         record = record or self.record
         if not fname:
             fname = self._filename(record, ack=ack)
-        if not direction:
-            direction = record.direction
+        if direction:
+            record.direction = direction
         if state == "error-report":
             # Exception as we read from the same path but w/ error suffix
             state = "error"
             fname += ".error"
-        return (self.checker._get_remote_file_path(state, filename=fname))
+        return self.checker._get_remote_file_path(state, filename=fname)
 
     def _mocked_backend_get(self, mocked_paths, path, **kwargs):
         self._storage_backend_calls.append(path)

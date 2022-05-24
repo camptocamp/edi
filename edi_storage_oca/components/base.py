@@ -48,7 +48,9 @@ class EDIStorageComponentMixin(AbstractComponent):
         filename = filename or self.exchange_record.exchange_filename
         direction = self.exchange_record.direction
         directory = self.backend[direction + "_dir_" + state] or ""
-        path = self.exchange_record.type_id._storage_fullpath(directory=directory, filename=filename)
+        path = self.exchange_record.type_id._storage_fullpath(
+            directory=directory, filename=filename
+        )
         return path
 
     def _get_remote_file(self, state, filename=None, binary=False):
