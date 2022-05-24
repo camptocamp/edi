@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright 2015-2018 Akretion France (http://www.akretion.com/)
 # @author: Alexis de Lattre <alexis.delattre@akretion.com>
+# Copyright 2021 Camptocamp
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 from odoo import api, fields, models, _
@@ -497,8 +498,6 @@ class AccountInvoiceImport(models.TransientModel):
     def _hook_no_partner_found(self, partner_dict):
         """Hook designed to add an action when no partner is found
         For instance to propose to create the partner based on the partner_dict.
-        In that case, the hook is expected to return an action serialized
-        as a dictionary which will be returned to the web client.
         """
         return False
 
@@ -655,6 +654,7 @@ class AccountInvoiceImport(models.TransientModel):
             self, diff_amount, invoice, import_config):
         ailo = self.env['account.invoice.line']
         prec = invoice.currency_id.rounding
+        res_cmp = float_compare(diff_amount, 0, precision_rounding=prec)
         account = import_config.get(
             'account', self.env['account.account'].browse())
         il_vals = {
@@ -671,8 +671,7 @@ class AccountInvoiceImport(models.TransientModel):
                 invoice.type, import_config['product'],
                 invoice.fiscal_position_id, invoice.company_id)
             il_vals['account_id'] = account.id
-        elif import_config['invoice_line_method'] == 'nline_auto_product':
-            res_cmp = float_compare(diff_amount, 0, precision_rounding=prec)
+        else:
             company = invoice.company_id
             if res_cmp > 0:
                 if not company.adjustment_debit_account_id:
@@ -686,7 +685,9 @@ class AccountInvoiceImport(models.TransientModel):
                         "You must configure the 'Adjustment Credit Account' "
                         "on the Accounting Configuration page."))
                 il_vals['account_id'] = company.adjustment_credit_account_id.id
-        logger.debug("Prepared global ajustment invoice line %s", il_vals)
+        logger.debug(
+            "Prepared global adjustment invoice line {}".format(il_vals)
+            )
         return il_vals
 
     @api.model
@@ -731,28 +732,30 @@ class AccountInvoiceImport(models.TransientModel):
                     # Add the adjustment line
                     iline.copy(copy_dict)
                     logger.info('Adjustment invoice line created')
-        if float_compare(
+        if import_config["tax_control"]:
+            if float_compare(
+                    parsed_inv['amount_untaxed'], invoice.amount_untaxed,
+                    precision_rounding=prec):
+                # create global adjustment line
+                diff_amount = float_round(
+                    parsed_inv['amount_untaxed'] - invoice.amount_untaxed,
+                    precision_rounding=prec)
+                logger.info(
+                    'Amount untaxed difference found '
+                    '(source: %s, odoo:%s, diff:%s)',
+                    parsed_inv['amount_untaxed'], invoice.amount_untaxed,
+                    diff_amount)
+                il_vals = self._prepare_global_adjustment_line(
+                    diff_amount, invoice, import_config)
+                il_vals['invoice_id'] = invoice.id
+                # TODO test rounding and adjustment
+                invoice.line_ids = [(0, 0, il_vals)]
+                logger.info('Global adjustment invoice line created')
+            # Invalidate cache
+            invoice = self.env['account.invoice'].browse(invoice.id)
+            assert not float_compare(
                 parsed_inv['amount_untaxed'], invoice.amount_untaxed,
-                precision_rounding=prec):
-            # create global ajustment line
-            diff_amount = float_round(
-                parsed_inv['amount_untaxed'] - invoice.amount_untaxed,
                 precision_rounding=prec)
-            logger.info(
-                'Amount untaxed difference found '
-                '(source: %s, odoo:%s, diff:%s)',
-                parsed_inv['amount_untaxed'], invoice.amount_untaxed,
-                diff_amount)
-            il_vals = self._prepare_global_adjustment_line(
-                diff_amount, invoice, import_config)
-            il_vals['invoice_id'] = invoice.id
-            self.env['account.invoice.line'].create(il_vals)
-            logger.info('Global adjustment invoice line created')
-        # Invalidate cache
-        invoice = self.env['account.invoice'].browse(invoice.id)
-        assert not float_compare(
-            parsed_inv['amount_untaxed'], invoice.amount_untaxed,
-            precision_rounding=prec)
         # Force tax amount if necessary
         if float_compare(
                 invoice.amount_total, parsed_inv['amount_total'],
@@ -889,8 +892,7 @@ class AccountInvoiceImport(models.TransientModel):
         if not invoice:
             raise UserError(_(
                 'You must select a supplier invoice or refund to update'))
-        parsed_inv = self.parse_invoice(
-            self.invoice_file, self.invoice_filename)
+        parsed_inv = self._get_parsed_invoice()
         if self.partner_id:
             # True if state='update' ; False when state='update-from-invoice'
             parsed_inv['partner']['recordset'] = self.partner_id
@@ -1067,7 +1069,7 @@ class AccountInvoiceImport(models.TransientModel):
         aiico = self.env['account.invoice.import.config']
         company_id = self._context.get('force_company') or\
             self.env.user.company_id.id
-        parsed_inv = self.parse_invoice(invoice_b64, invoice_filename)
+        parsed_inv = self._get_parsed_invoice()
         partner = bdio._match_partner(
             parsed_inv['partner'], parsed_inv['chatter_msg'])
 
