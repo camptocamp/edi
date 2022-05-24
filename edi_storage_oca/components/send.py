@@ -23,12 +23,9 @@ class EDIStorageSendComponent(Component):
         if not result:
             # all good here
             return True
-
-        direction = self.exchange_record.direction
-        filename = self.exchange_record.exchange_filename
         filedata = self.exchange_record.exchange_file
-        path = self._remote_file_path(direction, "pending", filename)
-        self.storage.add(path.as_posix(), filedata, binary=False)
+        path = self._get_remote_file_path("pending")
+        self.storage.add(path, filedata, binary=False)
         # TODO: delegate this to generic storage backend
         # except paramiko.ssh_exception.AuthenticationException:
         #     # TODO this exc handling should be moved to sftp backend IMO
