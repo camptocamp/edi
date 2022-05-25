@@ -1,4 +1,5 @@
 # Copyright 2020 ACSONE SA
+# Copyright 2022 Camptocamp SA (https://www.camptocamp.com).
 # @author Simone Orsi <simahawk@gmail.com>
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 import logging
@@ -100,9 +101,6 @@ class EDIExchangeType(models.Model):
         """,
     )
     advanced_settings = Serialized(default={}, compute="_compute_advanced_settings")
-    filename_pattern_settings = Serialized(
-        default={}, compute="_compute_advanced_settings"
-    )
     model_ids = fields.Many2many(
         "ir.model",
         help="""Modules to be checked for manual EDI generation""",
@@ -130,9 +128,6 @@ class EDIExchangeType(models.Model):
     def _compute_advanced_settings(self):
         for rec in self:
             rec.advanced_settings = rec._load_advanced_settings()
-            rec.filename_pattern_settings = rec.advanced_settings.get(
-                "filename_pattern", {}
-            )
 
     def _load_advanced_settings(self):
         return yaml.safe_load(self.advanced_settings_edit or "") or {}
@@ -149,8 +144,17 @@ class EDIExchangeType(models.Model):
                 raise exceptions.UserError(_("Backend should respect backend type!"))
 
     def _make_exchange_filename_datetime(self):
+        """
+        Returns current datetime (now) using filename pattern
+        which can be set using advanced settings.
+
+        Example:
+          filename_pattern:
+            force_tz: Europe/Rome
+            date_pattern: %Y-%m-%d-%H-%M-%S
+        """
         self.ensure_one()
-        pattern_settings = self.filename_pattern_settings
+        pattern_settings = self.advanced_settings.get("filename_pattern", {})
         force_tz = pattern_settings.get("force_tz", self.env.user.tz)
         date_pattern = pattern_settings.get("date_pattern", DATETIME_FORMAT)
         tz = timezone(force_tz) if force_tz else None
