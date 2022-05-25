@@ -145,7 +145,9 @@ class EDIBackend(models.Model):
         return record.identifier
 
     def _storage_get_input_filenames(self, exchange_type):
-        full_input_dir_pending = exchange_type._storage_fullpath(self.input_dir_pending)
+        full_input_dir_pending = exchange_type._storage_fullpath(
+            self.input_dir_pending
+        ).as_posix()
         if not exchange_type.exchange_filename_pattern:
             # If there is not pattern, return everything
             filenames = [

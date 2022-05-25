@@ -82,7 +82,7 @@ class TestEDIStorageBase(EDIBackendCommonComponentTestCase):
             # Exception as we read from the same path but w/ error suffix
             state = "error"
             fname += ".error"
-        return self.checker._get_remote_file_path(state, filename=fname)
+        return self.checker._get_remote_file_path(state, filename=fname).as_posix()
 
     def _mocked_backend_get(self, mocked_paths, path, **kwargs):
         self._storage_backend_calls.append(path)
