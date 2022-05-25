@@ -21,13 +21,9 @@ class EDIStorageComponentTestCase(TestEDIStorageBase):
             direction, state, filename = _args
             self.checker.exchange_record.direction = direction
             path_obj = self.checker._get_remote_file_path(state, filename)
-            self.assertEqual(path_obj, expected)
+            self.assertEqual(path_obj.as_posix(), expected)
 
-        with self.assertRaises(ValueError):
-            self.checker.exchange_record.direction = "WHATEVER"
-            self.checker._get_remote_file_path("error", "foo.csv")
-
-        with self.assertRaises(KeyError):
+        with self.assertRaises(AssertionError):
             self.checker.exchange_record.direction = "input"
             self.checker._get_remote_file_path("WHATEVER", "foo.csv")
 
