@@ -40,7 +40,7 @@ class EDIBackendComponentMixin(AbstractComponent):
         match_attrs = cls._match_attrs()
         if not any([kw.get(k) for k in match_attrs]):
             # No attr to check
-            return True
+            return True  # pragma: no cover
 
         backend_type = kw.get("backend_type")
         exchange_type = kw.get("exchange_type")

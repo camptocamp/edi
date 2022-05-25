@@ -12,7 +12,7 @@ class EDIBackendInputComponentMixin(AbstractComponent):
     _inherit = "edi.component.mixin"
 
     def process(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
 
 class EDIBackendReceiveComponentMixin(AbstractComponent):
@@ -21,4 +21,4 @@ class EDIBackendReceiveComponentMixin(AbstractComponent):
     _inherit = "edi.component.mixin"
 
     def receive(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover

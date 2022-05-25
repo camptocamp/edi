@@ -15,7 +15,7 @@ class EDIExchangeTypeTestCase(EDIBackendCommonTestCase):
         """
         self.exchange_type_out.advanced_settings_edit = settings
         # fmt:off
-        self.assertEqual(self.exchange_type_out.advanced_settings, {
+        expected = {
             "components": {
                 "foo": "this",
                 "boo": "that",
@@ -23,5 +23,7 @@ class EDIExchangeTypeTestCase(EDIBackendCommonTestCase):
             "whatever": {
                 "ok": True,
             }
-        })
+        }
         # fmt:on
+        self.assertEqual(self.exchange_type_out.advanced_settings, expected)
+        self.assertEqual(self.exchange_type_out.get_settings(), expected)

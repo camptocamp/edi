@@ -7,7 +7,7 @@ from odoo.addons.component.core import Component
 from .common import EDIBackendCommonComponentRegistryTestCase
 
 
-class EDIBackendTestCase(EDIBackendCommonComponentRegistryTestCase):
+class EDIComponentTestCase(EDIBackendCommonComponentRegistryTestCase):
     def test_component_match(self):
         """Lookup with special match method."""
 

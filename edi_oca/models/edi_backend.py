@@ -1,5 +1,6 @@
 # Copyright 2020 ACSONE SA
 # Copyright 2020 Creu Blanca
+# Copyright 2022 Camptocamp
 # @author Simone Orsi <simahawk@gmail.com>
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 
@@ -12,14 +13,9 @@ from odoo import _, exceptions, fields, models, tools
 from odoo.addons.component.exception import NoComponentError
 
 from ..exceptions import EDIValidationError
+from ..utils import get_exception_msg
 
 _logger = logging.getLogger(__name__)
-
-
-def _get_exception_msg(exc):
-    if hasattr(exc, "args") and isinstance(exc.args[0], str):
-        return exc.args[0]
-    return repr(exc)
 
 
 class EDIBackend(models.Model):
@@ -212,7 +208,7 @@ class EDIBackend(models.Model):
             try:
                 self._validate_data(exchange_record, output)
             except EDIValidationError as err:
-                error = _get_exception_msg(err)
+                error = get_exception_msg(err)
                 state = "validate_error"
                 message = exchange_record._exchange_status_message("validate_ko")
                 exchange_record.update(
@@ -277,7 +273,7 @@ class EDIBackend(models.Model):
         except self._swallable_exceptions() as err:
             if self.env.context.get("_edi_send_break_on_error"):
                 raise
-            error = _get_exception_msg(err)
+            error = get_exception_msg(err)
             state = "output_error_on_send"
             message = exchange_record._exchange_status_message("send_ko")
             res = False
@@ -431,7 +427,7 @@ class EDIBackend(models.Model):
         except self._swallable_exceptions() as err:
             if self.env.context.get("_edi_receive_break_on_error"):
                 raise
-            error = _get_exception_msg(err)
+            error = get_exception_msg(err)
             state = "input_processed_error"
             res = False
         else:
@@ -478,14 +474,14 @@ class EDIBackend(models.Model):
                 exchange_record._set_file_content(content)
                 self._validate_data(exchange_record)
         except EDIValidationError as err:
-            error = _get_exception_msg(err)
+            error = get_exception_msg(err)
             state = "validate_error"
             message = exchange_record._exchange_status_message("validate_ko")
             res = False
         except self._swallable_exceptions() as err:
             if self.env.context.get("_edi_receive_break_on_error"):
                 raise
-            error = _get_exception_msg(err)
+            error = get_exception_msg(err)
             state = "input_receive_error"
             message = exchange_record._exchange_status_message("receive_ko")
             res = False

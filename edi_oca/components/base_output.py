@@ -13,7 +13,7 @@ class EDIBackendOutputComponentMixin(AbstractComponent):
     _usage = "edi.output.generate.*"
 
     def generate(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
 
 class EDIBackendSendComponentMixin(AbstractComponent):
@@ -24,7 +24,7 @@ class EDIBackendSendComponentMixin(AbstractComponent):
     _usage = "edi.output.send.*"
 
     def send(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
 
 class EDIBackendCheckComponentMixin(AbstractComponent):
@@ -34,4 +34,4 @@ class EDIBackendCheckComponentMixin(AbstractComponent):
     _usage = "edi.output.check.*"
 
     def check(self):
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover

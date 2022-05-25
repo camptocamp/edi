@@ -12,7 +12,7 @@
     "website": "https://github.com/OCA/edi",
     "development_status": "Beta",
     "license": "LGPL-3",
-    "author": "ACSONE,Creu Blanca,Odoo Community Association (OCA)",
+    "author": "ACSONE, Creu Blanca, Camptocamp, Odoo Community Association (OCA)",
     "maintainers": ["simahawk", "etobella"],
     "depends": [
         "base_edi",
