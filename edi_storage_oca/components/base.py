@@ -47,7 +47,7 @@ class EDIStorageComponentMixin(AbstractComponent):
         """Retrieve remote path for current exchange record."""
         filename = filename or self.exchange_record.exchange_filename
         direction = self.exchange_record.direction
-        directory = self.backend[direction + "_dir_" + state] or ""
+        directory = self._dir_by_state(direction, state).as_posix()
         path = self.exchange_record.type_id._storage_fullpath(
             directory=directory, filename=filename
         )
@@ -65,6 +65,6 @@ class EDIStorageComponentMixin(AbstractComponent):
             # TODO: support match via pattern (eg: filename-prefix-*)
             # otherwise is impossible to retrieve input files and acks
             # (the date will never match)
-            return self.storage.get(path, binary=binary)
+            return self.storage.get(path.as_posix(), binary=binary)
         except FileNotFoundError:
             return None

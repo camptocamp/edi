@@ -24,7 +24,7 @@ class EDIStorageSendComponent(Component):
             # all good here
             return True
         filedata = self.exchange_record.exchange_file
-        path = self._get_remote_file_path("pending")
+        path = self._get_remote_file("pending")
         self.storage.add(path, filedata, binary=False)
         # TODO: delegate this to generic storage backend
         # except paramiko.ssh_exception.AuthenticationException:
