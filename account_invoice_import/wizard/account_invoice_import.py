@@ -728,10 +728,11 @@ class AccountInvoiceImport(models.TransientModel):
                 [("partner_id", "=", partner.id), ("company_id", "=", company_id)]
             )
             if not import_configs:
-                raise UserError(
+                self.message = (
                     _("Missing Invoice Import Configuration on partner '%s'.")
                     % partner.display_name
                 )
+                self.state = "config"
             elif len(import_configs) == 1:
                 wiz_vals["import_config_id"] = import_configs.id
                 import_config = import_configs.convert_to_import_config()
