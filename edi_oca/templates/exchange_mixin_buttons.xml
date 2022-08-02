@@ -9,9 +9,7 @@
             attrs="{'invisible': [('has_expected_edi_configuration', '=', False)]}"
         >
             <div>
-                <i
-                    class="fa fa-retweet"
-                />The record has some pending EDIs to be generated
+                <i class="fa fa-retweet" />This record has EDI exchanges to handle
                 <field name="expected_edi_configuration" widget="edi_configuration" />
                 <field name="has_expected_edi_configuration" invisible="1" />
             </div>
