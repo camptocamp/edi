@@ -81,15 +81,21 @@ class TestConsumerMixinCase(EDIBackendCommonTestCase):
 
     def test_expected_configuration(self):
         self.assertTrue(self.consumer_record.has_expected_edi_configuration)
-        self.assertIn(
-            str(self.exchange_type_out.id),
-            self.consumer_record.expected_edi_configuration,
-        )
+        # no btn enabled
         self.assertEqual(
             self.consumer_record.expected_edi_configuration[
                 str(self.exchange_type_out.id)
             ],
-            self.exchange_type_out.name,
+            {"form": {}},
+        )
+        # enable it
+        self.exchange_type_out.model_manual_btn = True
+        self.consumer_record.invalidate_cache(["expected_edi_configuration"])
+        self.assertEqual(
+            self.consumer_record.expected_edi_configuration[
+                str(self.exchange_type_out.id)
+            ],
+            {"form": {"btn": {"label": self.exchange_type_out.name}}},
         )
         action = self.consumer_record.edi_create_exchange_record(
             self.exchange_type_out.id
