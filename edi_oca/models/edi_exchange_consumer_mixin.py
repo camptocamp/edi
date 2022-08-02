@@ -68,9 +68,10 @@ class EDIExchangeConsumerMixin(models.AbstractModel):
 
     @api.model
     def _edi_get_exchange_type_conf(self, exchange_type):
+        conf = {"form": {}}
         if exchange_type.model_manual_btn:
-            return {"btn": {"label": exchange_type.name}}
-        return {}
+            conf.update({"form": {"btn": {"label": exchange_type.name}}})
+        return conf
 
     def _get_eval_context(self):
         """Prepare the context used when evaluating python code
