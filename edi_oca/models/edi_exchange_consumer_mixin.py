@@ -24,6 +24,7 @@ class EDIExchangeConsumerMixin(models.AbstractModel):
         domain=lambda r: [("model", "=", r._name)],
     )
     exchange_record_count = fields.Integer(compute="_compute_exchange_record_count")
+    # TODO: would be nice to rename it to `edi_configuration`
     expected_edi_configuration = Serialized(
         compute="_compute_expected_edi_configuration",
         default={},
@@ -60,8 +61,15 @@ class EDIExchangeConsumerMixin(models.AbstractModel):
                 )
                 if not eval_ctx.get("result", False):
                     continue
-            result[exchange_type.id] = exchange_type.name
+
+            result[exchange_type.id] = self._edi_get_exchange_type_conf(exchange_type)
         return result
+
+    @api.model
+    def _edi_get_exchange_type_conf(self, exchange_type):
+        if exchange_type.model_manual_btn:
+            return {"btn": {"label": exchange_type.name}}
+        return {}
 
     def _get_eval_context(self):
         """Prepare the context used when evaluating python code
