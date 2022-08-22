@@ -63,6 +63,11 @@ class EDIExchangeType(models.Model):
         help="Identify the type of the ack. "
         "If this field is valued it means an hack is expected.",
     )
+    ack_for_type_id = fields.Many2one(
+        string="Ack for exchange type",
+        comodel_name="edi.exchange.type",
+        compute="_compute_ack_for_type_id",
+    )
     advanced_settings_edit = fields.Text(
         string="Advanced YAML settings",
         help="""
@@ -139,6 +144,12 @@ class EDIExchangeType(models.Model):
         # Could be done w/ Cerberus or JSON-schema.
         # This would help documenting core and custom keys.
         return yaml.safe_load(self.advanced_settings_edit or "") or {}
+
+    def _compute_ack_for_type_id(self):
+        ack_for = self.search([("ack_type_id", "in", self.ids)])
+        by_type_id = {x.ack_type_id.id: x for x in ack_for}
+        for rec in self:
+            rec.ack_for_type_id = by_type_id.get(rec.id)
 
     def get_settings(self):
         return self.advanced_settings

@@ -17,7 +17,7 @@ class EDIExchangeRecord(models.Model):
     _name = "edi.exchange.record"
     _inherit = "mail.thread"
     _description = "EDI exchange Record"
-    _order = "exchanged_on desc"
+    _order = "exchanged_on desc, id desc"
     _rec_name = "identifier"
 
     identifier = fields.Char(required=True, index=True, readonly=True)
@@ -90,7 +90,7 @@ class EDIExchangeRecord(models.Model):
     ack_exchange_id = fields.Many2one(
         string="ACK exchange",
         comodel_name="edi.exchange.record",
-        help="ACK for this exchange",
+        help="ACK generated for current exchange.",
         compute="_compute_ack_exchange_id",
         store=True,
     )
@@ -149,8 +149,10 @@ class EDIExchangeRecord(models.Model):
     def _get_ack_record(self):
         if not self.type_id.ack_type_id:
             return None
-        return self.related_exchange_ids.filtered(
-            lambda x: x.type_id == self.type_id.ack_type_id
+        return fields.first(
+            self.related_exchange_ids.filtered(
+                lambda x: x.type_id == self.type_id.ack_type_id
+            ).sorted("id", reverse=True)
         )
 
     def _compute_ack_expected(self):

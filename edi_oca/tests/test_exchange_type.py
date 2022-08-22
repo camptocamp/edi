@@ -9,6 +9,12 @@ from .common import EDIBackendCommonTestCase
 
 
 class EDIExchangeTypeTestCase(EDIBackendCommonTestCase):
+    def test_ack_for(self):
+        self.assertEqual(self.exchange_type_out.ack_type_id, self.exchange_type_out_ack)
+        self.assertEqual(
+            self.exchange_type_out_ack.ack_for_type_id, self.exchange_type_out
+        )
+
     def test_advanced_settings(self):
         settings = """
         components:
