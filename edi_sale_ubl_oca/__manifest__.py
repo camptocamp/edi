@@ -12,9 +12,10 @@
     "website": "https://github.com/OCA/edi",
     "depends": [
         "sale_order_import_ubl",
+        "edi_sale_oca",
+        "edi_ubl_oca",
         "edi_xml_oca",
         "edi_exchange_template_oca",
-        "edi_ubl_oca",
     ],
     "data": [
         "templates/qweb_tmpl_party.xml",
