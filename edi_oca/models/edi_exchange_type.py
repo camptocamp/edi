@@ -62,7 +62,6 @@ class EDIExchangeType(models.Model):
         ondelete="set null",
         help="Identify the type of the ack. "
         "If this field is valued it means an hack is expected.",
-        copy=False,
     )
     ack_for_type_id = fields.Many2one(
         string="Ack for exchange type",
