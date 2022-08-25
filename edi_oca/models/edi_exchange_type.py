@@ -45,7 +45,7 @@ class EDIExchangeType(models.Model):
         comodel_name="queue.job.channel",
     )
     name = fields.Char(required=True)
-    code = fields.Char(required=True)
+    code = fields.Char(required=True, copy=False)
     direction = fields.Selection(
         selection=[("input", "Input"), ("output", "Output")], required=True
     )
@@ -62,6 +62,7 @@ class EDIExchangeType(models.Model):
         ondelete="set null",
         help="Identify the type of the ack. "
         "If this field is valued it means an hack is expected.",
+        copy=False,
     )
     ack_for_type_id = fields.Many2one(
         string="Ack for exchange type",
