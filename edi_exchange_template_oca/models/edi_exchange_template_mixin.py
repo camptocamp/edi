@@ -77,6 +77,8 @@ class EDIExchangeTemplateMixin(models.AbstractModel):
 
     @staticmethod
     def _date_to_string(dt, utc=True):
+        if not dt:
+            return ""
         if utc:
             dt = dt.astimezone(pytz.UTC)
         return fields.Date.to_string(dt)
@@ -86,13 +88,23 @@ class EDIExchangeTemplateMixin(models.AbstractModel):
 
         :returns: dict -- evaluation context given to safe_eval
         """
+        ctx = {
+            "uid": self.env.uid,
+            "user": self.env.user,
+            "DotDict": DotDict,
+        }
+        ctx.update(self._time_utils())
+        return ctx
+
+    def _time_utils(self):
         return {
             "datetime": safe_eval.datetime,
             "dateutil": safe_eval.dateutil,
             "time": safe_eval.time,
-            "uid": self.env.uid,
-            "user": self.env.user,
-            "DotDict": DotDict,
+            "utc_now": self._utc_now,
+            "date_to_string": self._date_to_string,
+            "datetime_to_string": fields.Datetime.to_string,
+            "time_to_string": lambda dt: dt.strftime("%H:%M:%S") if dt else "",
         }
 
     def _evaluate_code_snippet(self, **render_values):
