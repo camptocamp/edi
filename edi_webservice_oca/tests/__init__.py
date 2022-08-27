@@ -1,1 +1,1 @@
-from . import test_edi_webservice
+from . import test_backend
