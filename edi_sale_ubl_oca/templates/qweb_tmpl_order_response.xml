@@ -15,8 +15,7 @@
                 schemeAgencyID="BII"
                 schemeID="Profile"
             >urn:www.cenbii.eu:profile:BIIXYZ:ver1.0</cbc:ProfileID>
-            <!-- TODO -->
-            <cbc:ID>7</cbc:ID>
+            <cbc:ID t-esc="exchange_record.identifier" />
             <cbc:IssueDate
                 t-esc="date_to_string(datetime.date.today())"
             >2010-01-21</cbc:IssueDate>
