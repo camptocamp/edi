@@ -3,20 +3,18 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 {
-    "name": "EDI UBL",
-    "summary": """Define EDI backend type for UBL.""",
+    "name": "EDI Party data",
+    "summary": """
+    Allow to configure and retrieve party information for EDI exchanges.
+    """,
     "version": "14.0.1.0.0",
     "development_status": "Alpha",
     "license": "AGPL-3",
     "website": "https://github.com/OCA/edi",
-    "author": "Camptocamp,Odoo Community Association (OCA)",
+    "author": "Camptocamp, Odoo Community Association (OCA)",
     "maintainers": ["simahawk"],
-    "depends": ["edi_oca", "edi_party_data_oca", "base_ubl"],
-    "auto_install": True,
+    "depends": ["edi_oca", "partner_identification"],
     "data": [
-        "data/edi_backend_type.xml",
-    ],
-    "demo": [
-        "demo/edi_backend_demo.xml",
+        "views/edi_exchange_type_views.xml",
     ],
 }
