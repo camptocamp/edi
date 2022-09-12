@@ -63,4 +63,4 @@ class TestOrderResponseOutbound(TestCaseBase):
         file_content = self.record._get_file_content()
         handler = get_xml_handler(self.backend, self._schema_path)
         err = handler.validate(file_content)
-        self.assertEqual(err, None)
+        self.assertEqual(err, None, err)

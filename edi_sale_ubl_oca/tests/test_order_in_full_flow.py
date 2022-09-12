@@ -63,7 +63,7 @@ class TestOrderInboundFull(SavepointCase, EDIBackendTestMixin, OrderInboundTestM
         handler = get_xml_handler(self.backend, self._schema_path)
         # Test is a valid file
         err = handler.validate(file_content)
-        self.assertEqual(err, None)
+        self.assertEqual(err, None, err)
 
         # TODO: new test
         # Subsequent updates on some fields should trigger new exchanges
@@ -79,7 +79,7 @@ class TestOrderInboundFull(SavepointCase, EDIBackendTestMixin, OrderInboundTestM
         file_content = ack_exc_record._get_file_content()
         self.assertTrue(file_content)
         err = handler.validate(file_content)
-        self.assertEqual(err, None)
+        self.assertEqual(err, None, err)
         # Subsequent updates on some fields should trigger new exchanges
         xml_data = handler.parse_xml(file_content)
         new_qty = xml_data["cac:OrderLine"][0]["cac:LineItem"]["cbc:Quantity"]

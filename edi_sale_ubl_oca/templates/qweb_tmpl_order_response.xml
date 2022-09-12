@@ -40,12 +40,20 @@
                 </t>
             </cac:BuyerCustomerParty>
             <cac:Delivery>
-                <cbc:ID t-esc="delivery.name">
-                <!-- TODO: get outgoing picking total pkg qty? -->
+                <cbc:ID t-esc="delivery.name" />
                 <!-- TODO: get lines.product_uom_id.unece_code but what if is not unique?-->
-                <cbc:Quantity unitCode="LTR">TODO</cbc:Quantity>
-                <cbc:MinimumQuantity />
-                <cbc:MaximumQuantity />
+                <t t-set="uom" t-value="delivery.move_line_ids.product_uom_id[0]" />
+                <!-- TODO: get pkg qty instead? -->
+                <t
+                    t-set="total_qty"
+                    t-value="sum(delivery.move_line_ids.mapped('product_uom_qty'))"
+                />
+                <cbc:Quantity
+                    t-att-unitCode="uom.unece_code"
+                    t-esc="total_qty"
+                >1.0</cbc:Quantity>
+                <!-- <cbc:MinimumQuantity />
+                <cbc:MaximumQuantity /> -->
                 <cbc:ActualDeliveryDate
                     t-esc="date_to_string(record.commitment_date)"
                 />
@@ -53,20 +61,20 @@
                     t-esc="time_to_string(record.commitment_date)"
                 />
                 <!-- TODO -->
-        <!-- <cac:DeliveryAddress>
-            <cbc:StreetName>Avon Way</cbc:StreetName>
-            <cbc:BuildingName>Thereabouts</cbc:BuildingName>
-            <cbc:BuildingNumber>56A</cbc:BuildingNumber>
-            <cbc:CityName>Bridgtow</cbc:CityName>
-            <cbc:PostalZone>ZZ99 1ZZ</cbc:PostalZone>
-            <cbc:CountrySubentity>Avon</cbc:CountrySubentity>
-            <cac:AddressLine>
-                <cbc:Line>3rd Floor, Room 5</cbc:Line>
-            </cac:AddressLine>
-            <cac:Country>
-                <cbc:IdentificationCode>GB</cbc:IdentificationCode>
-            </cac:Country>
-        </cac:DeliveryAddress> -->
+                <!-- <cac:DeliveryAddress>
+                    <cbc:StreetName>Avon Way</cbc:StreetName>
+                    <cbc:BuildingName>Thereabouts</cbc:BuildingName>
+                    <cbc:BuildingNumber>56A</cbc:BuildingNumber>
+                    <cbc:CityName>Bridgtow</cbc:CityName>
+                    <cbc:PostalZone>ZZ99 1ZZ</cbc:PostalZone>
+                    <cbc:CountrySubentity>Avon</cbc:CountrySubentity>
+                    <cac:AddressLine>
+                        <cbc:Line>3rd Floor, Room 5</cbc:Line>
+                    </cac:AddressLine>
+                    <cac:Country>
+                        <cbc:IdentificationCode>GB</cbc:IdentificationCode>
+                    </cac:Country>
+                </cac:DeliveryAddress> -->
             </cac:Delivery>
             <t t-foreach="record.order_line" t-as="line">
                 <cac:OrderLine>
@@ -82,8 +90,9 @@
                             listName="Line Status"
                         >TODO</cbc:LineStatusCode>
                         <cbc:Quantity
-                            t-att-unitCode="line.product_uom_id.unece_code"
-                            t-esc="line.product_uom_qty">1</cbc:Quantity>
+                            t-att-unitCode="line.product_uom.unece_code"
+                            t-esc="line.product_uom_qty"
+                        >1</cbc:Quantity>
                         <cac:Item>
                             <cbc:Description
                                 t-esc="line.name"

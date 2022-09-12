@@ -16,6 +16,9 @@
         "edi_ubl_oca",
         "edi_xml_oca",
         "edi_exchange_template_oca",
+        # This could be made optional
+        # but the delivery part would need another source of data
+        "sale_stock",
     ],
     "data": [
         "templates/qweb_tmpl_party.xml",
