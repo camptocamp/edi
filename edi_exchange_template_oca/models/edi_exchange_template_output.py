@@ -1,9 +1,10 @@
 # Copyright 2020 ACSONE SA
+# Copyright 2022 Camptocamp SA
 # @author Simone Orsi <simahawk@gmail.com>
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 import logging
 
-from odoo import fields, models
+from odoo import _, exceptions, fields, models
 
 from ..utils import xml_purge_nswrapper
 
@@ -96,6 +97,7 @@ class EDIExchangeOutputTemplate(models.Model):
             "template": self,
             "render_edi_template": self._render_template,
             "get_info_provider": self._get_info_provider,
+            "get_party_info": self._get_party_info,
             "info": {},
         }
         values.update(self._time_utils())
@@ -137,3 +139,16 @@ class EDIExchangeOutputTemplate(models.Model):
             model, usage_candidates, work_ctx=default_work_ctx, **kw
         )
         return provider
+
+    def _get_party_data(self, exchange_record, partner, raise_if_not_found=True):
+        """Shortcut to lookup an info provider for parties."""
+        usage = "edi.party.data"
+        work_ctx = {"partner": partner}
+        provider = self._get_info_provider(
+            exchange_record, work_ctx=work_ctx, usage=usage
+        )
+        if not provider and raise_if_not_found:
+            raise exceptions.UserError(
+                _("No info provider found for usage = `%s`") % usage
+            )
+        return provider.get_party() if provider else None
