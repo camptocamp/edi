@@ -4,3 +4,7 @@ responses
 # Python Dependencies
 PyYAML
 xmlunittest
+
+odoo14-addon-edi_exchange_template_oca @ git+https://github.com/OCA/edi@refs/pull/696/head#subdirectory=setup/edi_exchange_template_oca
+odoo14-addon-edi_exchange_template_party_data @ git+https://github.com/OCA/edi@refs/pull/696/head#subdirectory=setup/edi_exchange_template_party_data
+odoo14-addon-edi_exchange_type_auto @ git+https://github.com/OCA/edi@refs/pull/663/head#subdirectory=setup/edi_exchange_type_auto
