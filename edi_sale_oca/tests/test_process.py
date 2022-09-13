@@ -91,22 +91,16 @@ class TestProcessComponent(SavepointComponentCase, EDIBackendTestMixin):
             "state",
             new_callable=mock.PropertyMock,
         )
-        rec_msgs = self.record.message_ids
         # Simulate the wizard detected an existing order state
+        err_msg = "Sales order has already been imported before"
         with m1 as md_onchange, m2 as md_btn, m3 as md_sale_id, m4 as md_state:
             md_sale_id.return_value = order
             md_state.return_value = "update"
-            with self.assertRaisesRegex(
-                exceptions.UserError, "Sales order has already been imported before"
-            ):
+            with self.assertRaisesRegex(exceptions.UserError, err_msg):
                 comp.process()
                 md_onchange.assert_called()
                 md_btn.assert_called()
-        new_msg = self.record.message_ids - rec_msgs
-        self.assertIn("Sales order has already been imported before", new_msg.body)
-        self.assertIn(
-            f"/web#id={order.id}&amp;model=sale.order&amp;view_type=form", new_msg.body
-        )
+        self.assertEqual(self.exc_record_in.exchange_error, err_msg)
 
     def test_new_order(self):
         order = self.env["sale.order"].create(
