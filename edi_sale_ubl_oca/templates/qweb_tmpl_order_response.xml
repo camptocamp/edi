@@ -68,20 +68,11 @@
                     t-esc="time_to_string(record.commitment_date)"
                 />
                 <!-- TODO: get picking.partner_id? -->
-                <!-- <cac:DeliveryAddress>
-                    <cbc:StreetName>Avon Way</cbc:StreetName>
-                    <cbc:BuildingName>Thereabouts</cbc:BuildingName>
-                    <cbc:BuildingNumber>56A</cbc:BuildingNumber>
-                    <cbc:CityName>Bridgtow</cbc:CityName>
-                    <cbc:PostalZone>ZZ99 1ZZ</cbc:PostalZone>
-                    <cbc:CountrySubentity>Avon</cbc:CountrySubentity>
-                    <cac:AddressLine>
-                        <cbc:Line>3rd Floor, Room 5</cbc:Line>
-                    </cac:AddressLine>
-                    <cac:Country>
-                        <cbc:IdentificationCode>GB</cbc:IdentificationCode>
-                    </cac:Country>
-                </cac:DeliveryAddress> -->
+                <cac:DeliveryAddress t-if="delivery.partner_id">
+                    <t t-call="edi_sale_ubl_oca.qweb_tmpl_ubl_address">
+                        <t t-set="partner" t-value="delivery.partner_id" />
+                    </t>
+                </cac:DeliveryAddress>
             </cac:Delivery>
             <t t-foreach="record.order_line" t-as="line">
                 <cac:OrderLine>
