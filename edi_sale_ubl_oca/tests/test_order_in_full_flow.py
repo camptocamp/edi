@@ -83,4 +83,4 @@ class TestOrderInboundFull(SavepointCase, EDIBackendTestMixin, OrderInboundTestM
         # Subsequent updates on some fields should trigger new exchanges
         xml_data = handler.parse_xml(file_content)
         new_qty = xml_data["cac:OrderLine"][0]["cac:LineItem"]["cbc:Quantity"]
-        self.assertGreater(old_qty, new_qty)
+        self.assertGreater(old_qty["$"], new_qty["$"])
