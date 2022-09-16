@@ -191,10 +191,7 @@ class EDIAutoExchangeConsumerMixin(models.AbstractModel):
         return rec_by_type
 
     def _edi_auto_log_skip(self, operation, exc_type, reason):
-        handler = _logger.debug
-        if os.getenv("EDI_AUTO_LOG_DEBUG"):
-            handler = _logger.info
-        handler(
+        _logger.debug(
             "Skip model=%(model)s type=%(type_code)s op=%(op)s: %(reason)s",
             {
                 "model": self._name,
