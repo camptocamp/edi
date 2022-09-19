@@ -42,32 +42,12 @@
             </cac:BuyerCustomerParty>
             <cac:Delivery>
                 <cbc:ID t-esc="delivery.name" />
-                <t
-                    t-set="uoms"
-                    t-value="delivery.move_line_ids.mapped('product_uom_id')"
-                />
-                <!-- Use UOM only if homogeneus -->
-                <t t-set="uom" t-value="first_of(uoms) if len(uoms) == 1 else None" />
-                <!-- TODO: get pkg qty instead? -->
-                <t
-                    t-if="uom"
-                    t-set="total_qty"
-                    t-value="sum(delivery.move_line_ids.mapped('product_uom_qty'))"
-                />
-                <cbc:Quantity
-                    t-if="uom"
-                    t-att-unitCode="uom.unece_code"
-                    t-esc="total_qty"
-                >1.0</cbc:Quantity>
-                <!-- <cbc:MinimumQuantity />
-                <cbc:MaximumQuantity /> -->
                 <cbc:ActualDeliveryDate
                     t-esc="date_to_string(record.commitment_date)"
                 />
                 <cbc:ActualDeliveryTime
                     t-esc="time_to_string(record.commitment_date)"
                 />
-                <!-- TODO: get picking.partner_id? -->
                 <cac:DeliveryAddress t-if="delivery.partner_id">
                     <t t-call="edi_sale_ubl_oca.qweb_tmpl_ubl_address">
                         <t t-set="partner" t-value="delivery.partner_id" />
@@ -83,10 +63,7 @@
                         <cbc:SalesOrderID />
                         <cbc:UUID />
                         <cbc:Note />
-                        <cbc:LineStatusCode
-                            listAgencyID="UBL"
-                            listName="Line Status"
-                        >TODO</cbc:LineStatusCode>
+                        <cbc:LineStatusCode />
                         <cbc:Quantity
                             t-att-unitCode="line.product_uom.unece_code"
                             t-esc="line.product_uom_qty"
@@ -96,7 +73,7 @@
                                 t-esc="line.name"
                             >Red paint</cbc:Description>
                             <cac:SellersItemIdentification>
-                                <cbc:ID>TODO</cbc:ID>
+                                <cbc:ID t-esc="line.product_id.default_code or line.product_id.barcode" />
                             </cac:SellersItemIdentification>
                         </cac:Item>
                         <!-- TODO -->
