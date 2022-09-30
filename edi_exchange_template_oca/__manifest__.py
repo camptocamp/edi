@@ -11,7 +11,7 @@
     "author": "ACSONE,Camptocamp,Odoo Community Association (OCA)",
     "maintainers": ["simahawk"],
     "website": "https://github.com/OCA/edi",
-    "depends": ["edi_oca", "component"],
+    "depends": ["edi_oca", "edi_party_data_oca", "component"],
     "data": [
         "security/ir_model_access.xml",
         "views/edi_exchange_template_output_views.xml",
