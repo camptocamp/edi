@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- TODO: no update -->
+<odoo>
+    <template id="qwb_tmpl_ubl_order_response_out" name="Render UBL OrderResponse out">
+
+        <OrderResponse
+            xmlns="urn:oasis:names:specification:ubl:schema:xsd:OrderResponse-2"
+            xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+            xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+        >
+            <cbc:UBLVersionID>2.2</cbc:UBLVersionID>
+            <cbc:CustomizationID
+            >urn:www.cenbii.eu:transaction:biicoretrdmXYZ:ver1.0</cbc:CustomizationID>
+            <cbc:ProfileID
+                schemeAgencyID="BII"
+                schemeID="Profile"
+            >urn:www.cenbii.eu:profile:BIIXYZ:ver1.0</cbc:ProfileID>
+            <cbc:ID t-esc="exchange_record.identifier" />
+            <cbc:IssueDate
+                t-esc="date_to_string(datetime.date.today())"
+            >2010-01-21</cbc:IssueDate>
+            <cbc:IssueTime
+                t-esc="time_to_string(datetime.datetime.now())"
+            >12:30:00</cbc:IssueTime>
+            <cbc:Note t-esc="record.note" />
+            <cbc:DocumentCurrencyCode
+                t-esc="record.currency_id.name"
+            >EUR</cbc:DocumentCurrencyCode>
+            <cac:OrderReference>
+                <cbc:ID t-esc="record.client_order_ref">XYZ123</cbc:ID>
+                <cbc:SalesOrderID t-esc="record.name">SO1234</cbc:SalesOrderID>
+            </cac:OrderReference>
+            <cac:SellerSupplierParty>
+                <t t-call="edi_sale_ubl_oca.qweb_tmpl_ubl_party">
+                    <t t-set="party" t-value="seller_party" />
+                </t>
+            </cac:SellerSupplierParty>
+            <cac:BuyerCustomerParty>
+                <t t-call="edi_sale_ubl_oca.qweb_tmpl_ubl_party">
+                    <t t-set="party" t-value="buyer_party" />
+                </t>
+            </cac:BuyerCustomerParty>
+            <cac:Delivery>
+                <cbc:ID t-esc="delivery.name" />
+                <t
+                    t-set="uoms"
+                    t-value="delivery.move_line_ids.mapped('product_uom_id')"
+                />
+                <!-- Use UOM only if homogeneus -->
+                <t t-set="uom" t-value="first_of(uoms) if len(uoms) == 1 else None" />
+                <!-- TODO: get pkg qty instead? -->
+                <t
+                    t-if="uom"
+                    t-set="total_qty"
+                    t-value="sum(delivery.move_line_ids.mapped('product_uom_qty'))"
+                />
+                <cbc:Quantity
+                    t-if="uom"
+                    t-att-unitCode="uom.unece_code"
+                    t-esc="total_qty"
+                >1.0</cbc:Quantity>
+                <!-- <cbc:MinimumQuantity />
+                <cbc:MaximumQuantity /> -->
+                <cbc:ActualDeliveryDate
+                    t-esc="date_to_string(record.commitment_date)"
+                />
+                <cbc:ActualDeliveryTime
+                    t-esc="time_to_string(record.commitment_date)"
+                />
+                <!-- TODO: get picking.partner_id? -->
+                <cac:DeliveryAddress t-if="delivery.partner_id">
+                    <t t-call="edi_sale_ubl_oca.qweb_tmpl_ubl_address">
+                        <t t-set="partner" t-value="delivery.partner_id" />
+                    </t>
+                </cac:DeliveryAddress>
+            </cac:Delivery>
+            <t t-foreach="record.order_line" t-as="line">
+                <cac:OrderLine>
+                    <cbc:SubstitutionStatusCode />
+                    <cbc:Note />
+                    <cac:LineItem>
+                        <cbc:ID t-esc="line.edi_id">1</cbc:ID>
+                        <cbc:SalesOrderID />
+                        <cbc:UUID />
+                        <cbc:Note />
+                        <cbc:LineStatusCode
+                            listAgencyID="UBL"
+                            listName="Line Status"
+                        >TODO</cbc:LineStatusCode>
+                        <cbc:Quantity
+                            t-att-unitCode="line.product_uom.unece_code"
+                            t-esc="line.product_uom_qty"
+                        >1</cbc:Quantity>
+                        <cac:Item>
+                            <cbc:Description
+                                t-esc="line.name"
+                            >Red paint</cbc:Description>
+                            <cac:SellersItemIdentification>
+                                <cbc:ID>TODO</cbc:ID>
+                            </cac:SellersItemIdentification>
+                        </cac:Item>
+                        <!-- TODO -->
+                        <!-- <cac:Delivery>
+                            <cac:RequestedDeliveryPeriod>
+                                <cbc:StartDate>2010-02-10</cbc:StartDate>
+                                <cbc:EndDate>2010-02-25</cbc:EndDate>
+                            </cac:RequestedDeliveryPeriod>
+                        </cac:Delivery> -->
+                    </cac:LineItem>
+                </cac:OrderLine>
+            </t>
+        </OrderResponse>
+
+    </template>
+</odoo>
+<!-- TODO: -->
+<!-- <cac:OrderLine> -->
+<!-- <cac:PackQuantity> -->
+<!-- <cac:LineReference> -->
