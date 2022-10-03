@@ -106,6 +106,7 @@ class TestCaseBase(XMLBaseTestCase, OrderMixin):
         for line in lines:
             cls._create_sale_order_line(cls.sale, **line)
 
+        cls.sale.client_order_ref = "ABC123"
         cls.sale.action_confirm()
 
 

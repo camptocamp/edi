@@ -34,11 +34,9 @@ class TestOrderInboundFull(SavepointCase, EDIBackendTestMixin, OrderInboundTestM
         order_msg = order.message_ids[0]
         self.assertIn("Exchange processed successfully", order_msg.body)
         self.assertIn(self.exc_record_in.identifier, order_msg.body)
-        # Test ack generated
-        self.assertEqual(self.exc_record_in.ack_exchange_id.type_id, self.exc_type_out)
         order.invalidate_cache()
         # Test relations
-        self.assertEqual(len(order.exchange_record_ids), 2)
+        self.assertEqual(len(order.exchange_record_ids), 1)
         exc_record = order.exchange_record_ids.filtered(
             lambda x: x.type_id == self.exc_type_in
         )
