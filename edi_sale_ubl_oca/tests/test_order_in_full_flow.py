@@ -40,17 +40,13 @@ class TestOrderInboundFull(SavepointCase, EDIBackendTestMixin, OrderInboundTestM
         exc_record = order.exchange_record_ids.filtered(
             lambda x: x.type_id == self.exc_type_in
         )
+        self.assertEqual(exc_record, self.exc_record_in)
+        # Confirm the order
+        order.action_confirm()
+        # Should give us a valid order response ack record
         ack_exc_record = order.exchange_record_ids.filtered(
             lambda x: x.type_id == self.exc_type_out
         )
-        self.assertEqual(exc_record, self.exc_record_in)
-        self.assertEqual(ack_exc_record.parent_id, self.exc_record_in)
-        self.assertEqual(ack_exc_record.edi_exchange_state, "new")
-        # No ack generated
-        self.assertFalse(ack_exc_record._get_file_content())
-        # Confirm the order
-        order.action_confirm()
-        # Should give us a valid order response
         file_content = ack_exc_record._get_file_content()
         self.assertTrue(file_content)
         # TMP /
