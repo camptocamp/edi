@@ -12,7 +12,7 @@
     "author": "Camptocamp, Odoo Community Association (OCA)",
     "maintainers": ["simahawk"],
     "depends": ["edi_oca", "edi_ubl_oca", "purchase_order_ubl"],
-    "data": [
-        "data/edi_exchange_type.xml",
+    "demo": [
+        "demo/edi_exchange_type.xml",
     ],
 }
