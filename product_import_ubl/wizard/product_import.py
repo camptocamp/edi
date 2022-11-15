@@ -1,0 +1,115 @@
+# Copyright 2022 Camptocamp
+# License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
+
+from lxml import etree
+
+from odoo import api, models
+
+CATALOGUE_NS = "urn:oasis:names:specification:ubl:schema:xsd:Catalogue-2"
+CATALOGUE_TAG = "{%s}Catalogue" % CATALOGUE_NS
+
+
+class XPathGetter(object):
+    _missing = etree.Element("Missing")
+
+    def __init__(self, element, namespaces):
+        self._xpath = element.xpath
+        self._ns = namespaces
+
+    def xpath(self, path):
+        # Return a list of elements
+        items = self._xpath(path, namespaces=self._ns)
+        return items
+
+    def xpath_get(self, path):
+        # Return 1 element
+        items = self._xpath(path, namespaces=self._ns)
+        return items[0] if items else self._missing
+
+    def xpath_text(self, path):
+        # Return text or False
+        items = self._xpath(path, namespaces=self._ns)
+        return items and items[0].text or False
+
+    get = xpath_get
+    text = xpath_text
+
+
+class ProductImport(models.TransientModel):
+    _name = "product.import"
+    _inherit = ["product.import", "base.ubl"]
+
+    @api.model
+    def parse_xml_catalogue(self, xml_root, detect_doc_type=False):
+        if xml_root.tag == CATALOGUE_TAG:
+            if detect_doc_type:
+                return "catalogue"
+            return self.parse_ubl_catalogue(xml_root)
+        return super().parse_xml_catalogue(xml_root, detect_doc_type=detect_doc_type)
+
+    @api.model
+    def parse_ubl_catalogue_line(self, line, ns):
+        xline = XPathGetter(line, ns)
+
+        # Get product basic info:
+        #  - code: cac:Item/cac:SellersItemIdentification/cbc:ID
+        #  - barcode: cac:Item/cac:StandardItemIdentification/cbc:ID[@schemeID='GTIN']
+        product_vals = self.ubl_parse_product(line, ns)
+
+        # Fill available data
+        ele_price = xline.get(
+            "cac:RequiredItemLocationQuantity/cac:Price/cbc:PriceAmount"
+        )
+        min_qty = float(
+            xline.text("cac:RequiredItemLocationQuantity/cbc:MinimumQuantity")
+        )
+
+        product_vals.update(
+            {
+                "name": xline.text("cac:Item/cbc:Name"),
+                "description": xline.text("cac:Item/cbc:Description"),
+                "external_ref": xline.text("cbc:ID"),
+                "uom": {"unece_code": xline.text("cbc:OrderableUnit")},
+                # Seller info
+                "price": float(ele_price.text or 0),
+                "currency": {"iso": ele_price.attrib.get("currencyID") or False},
+                "min_qty": min_qty,
+            }
+        )
+        return product_vals
+
+    @api.model
+    def parse_ubl_catalogue(self, xml_root):
+        ns = xml_root.nsmap
+        # Empty namespace prefix is not supported in XPath
+        ns["main"] = ns.pop(None)
+        assert ns["main"] == CATALOGUE_NS
+        doc_type = "catalogue"
+        document = "Catalogue"
+        root_name = f"main:{document}"
+        line_name = f"cac:{document}Line"
+
+        # Validate content according to xsd file
+        xml_string = etree.tostring(
+            xml_root, pretty_print=True, encoding="UTF-8", xml_declaration=True
+        )
+        self._ubl_check_xml_schema(
+            xml_string, document, version=self._ubl_get_version(xml_root, root_name, ns)
+        )
+        # Parse content
+        xroot = XPathGetter(xml_root, ns)
+        supplier_xpath = xroot.get(f"/{root_name}/cac:SellerSupplierParty/cac:Party")
+        supplier_dict = self.ubl_parse_party(supplier_xpath, ns)
+
+        res_lines = [
+            self.parse_ubl_catalogue_line(line, ns)
+            for line in xroot.xpath(f"/{root_name}/{line_name}")
+        ]
+        res = {
+            "doc_type": doc_type,
+            "date": xroot.text(f"/{root_name}/cbc:IssueDate"),
+            "ref": xroot.text(f"/{root_name}/cbc:ID"),
+            "seller": supplier_dict,
+            "products": res_lines,
+        }
+        return res
