@@ -4,6 +4,7 @@
 from lxml import etree
 
 from odoo import api, models
+from odoo.tools import str2bool
 
 CATALOGUE_NS = "urn:oasis:names:specification:ubl:schema:xsd:Catalogue-2"
 CATALOGUE_TAG = "{%s}Catalogue" % CATALOGUE_NS
@@ -26,10 +27,10 @@ class XPathGetter(object):
         items = self._xpath(path, namespaces=self._ns)
         return items[0] if items else self._missing
 
-    def xpath_text(self, path):
+    def xpath_text(self, path, default=False):
         # Return text or False
         items = self._xpath(path, namespaces=self._ns)
-        return items and items[0].text or False
+        return items[0].text if items else default
 
     get = xpath_get
     text = xpath_text
@@ -73,12 +74,15 @@ class ProductImport(models.TransientModel):
 
         product_vals.update(
             {
+                "active": str2bool(
+                    xline.text("cbc:OrderableIndicator", default="true")
+                ),
                 "name": xline.text("cac:Item/cbc:Name"),
                 "description": xline.text("cac:Item/cbc:Description"),
                 "external_ref": xline.text("cbc:ID"),
                 "uom": {"unece_code": xline.text("cbc:OrderableUnit")},
                 "product_code": xline.text(
-                    "cac:Item/cac:SellersItemIdentification/cbc:ID"
+                    "cac:Item/cac:ManufacturersItemIdentification/cbc:ID"
                 ),
                 "weight": float(ele_weight.text or 0),
                 "weight_uom": {"unece_code": weight_unit} if weight_unit else False,
@@ -111,6 +115,8 @@ class ProductImport(models.TransientModel):
         )
         # Parse content
         xroot = XPathGetter(xml_root, ns)
+        company_xpath = xroot.get(f"/{root_name}/cac:ReceiverParty")
+        company_dict = ubl.ubl_parse_party(company_xpath, ns)
         supplier_xpath = xroot.get(f"/{root_name}/cac:SellerSupplierParty/cac:Party")
         supplier_dict = ubl.ubl_parse_party(supplier_xpath, ns)
 
@@ -122,6 +128,7 @@ class ProductImport(models.TransientModel):
             "doc_type": doc_type,
             "date": xroot.text(f"/{root_name}/cbc:IssueDate"),
             "ref": xroot.text(f"/{root_name}/cbc:ID"),
+            "company": company_dict,
             "seller": supplier_dict,
             "products": res_lines,
         }
