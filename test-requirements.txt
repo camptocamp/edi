@@ -4,3 +4,4 @@ responses
 # Python Dependencies
 PyYAML
 xmlunittest
+odoo14-addon-product_import @ git+https://github.com/OCA/edi@refs/pull/692/head#subdirectory=setup/product_import
