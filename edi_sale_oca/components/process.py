@@ -18,14 +18,20 @@ class EDIExchangeSOInput(Component):
 
     def __init__(self, work_context):
         super().__init__(work_context)
-        self.settings = self.type_settings.get("sale_order_import", {})
+        self.settings = {}
+        # Suppor legacy key `self.type_settings`
+        for key in ("sale_order", "sale_order_import"):
+            if key in self.type_settings:
+                self.settings = self.type_settings.get(key, {})
+                break
 
     def process(self):
         wiz = self._setup_wizard()
         res = wiz.import_order_button()
+        # TODO: log debug
         if wiz.state == "update" and wiz.sale_id:
             order = wiz.sale_id
-            msg = _("Sales order has already been imported before")
+            msg = self.msg_order_existing_error
             self._handle_existing_order(order, msg)
             raise UserError(msg)
         else:
@@ -34,8 +40,21 @@ class EDIExchangeSOInput(Component):
             if self._order_should_be_confirmed():
                 order.action_confirm()
             self.exchange_record.sudo()._set_related_record(order)
-            return _("Sales order %s created") % order.name
-        raise UserError(_("Something went wrong with the importing wizard."))
+            order._edi_set_origin(self.exchange_record)
+            return self.msg_order_created % order.name
+        raise UserError(self.msg_generic_error)
+
+    @property
+    def msg_order_existing_error(self):
+        return _("Sales order has already been imported before")
+
+    @property
+    def msg_order_created(self):
+        return _("Sales order %s created")
+
+    @property
+    def msg_generic_error(self):
+        return _("Something went wrong with the importing wizard.")
 
     def _setup_wizard(self):
         """Init a `sale.order.import` instance for current record."""
