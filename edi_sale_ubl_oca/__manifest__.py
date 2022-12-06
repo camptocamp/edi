@@ -24,7 +24,9 @@
     "data": [
         "templates/qweb_tmpl_party.xml",
         "templates/qweb_tmpl_order_response.xml",
-        "data/edi_exchange_type.xml",
-        "data/exc_templ_order_response.xml",
+    ],
+    "demo": [
+        "demo/edi_exchange_type.xml",
+        "demo/exc_templ_order_response.xml",
     ],
 }
