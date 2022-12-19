@@ -131,18 +131,18 @@
                         />
                         <!--
                             Dynamic support for commitment dates at line level.
-                            You can add your own field or rely on `sale_delivery_date`.
+                            You can add your own field or rely on `sale_order_line_date`.
                          -->
-                        <cac:RequestedDeliveryPeriod
-                            t-if="'commitment_date' in line._fields"
-                        >
-                            <cbc:StartDate
-                                t-esc="date_to_string(line.commitment_date)"
-                            >2010-02-10</cbc:StartDate>
-                            <cbc:EndDate
-                                t-esc="date_to_string(line.commitment_date)"
-                            >2010-02-25</cbc:EndDate>
-                        </cac:RequestedDeliveryPeriod>
+                        <cac:Delivery t-if="'commitment_date' in line._fields">
+                            <cac:RequestedDeliveryPeriod>
+                                <cbc:StartDate
+                                    t-esc="date_to_string(line.commitment_date)"
+                                >2010-02-10</cbc:StartDate>
+                                <cbc:EndDate
+                                    t-esc="date_to_string(line.commitment_date)"
+                                >2010-02-25</cbc:EndDate>
+                            </cac:RequestedDeliveryPeriod>
+                        </cac:Delivery>
                         <cac:Price>
                             <cbc:PriceAmount
                                 t-att-currencyID="record.currency_id.name"
