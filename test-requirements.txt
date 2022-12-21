@@ -4,3 +4,5 @@ responses
 # Python Dependencies
 PyYAML
 xmlunittest
+
+odoo14-addon-sale_stock_line_customer_ref @ git+https://github.com/OCA/sale-workflow@refs/pull/2262/head#subdirectory=setup/sale_stock_line_customer_ref
