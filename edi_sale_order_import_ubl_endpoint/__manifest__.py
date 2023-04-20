@@ -5,7 +5,7 @@
 {
     "name": "EDI Sale order import UBL endpoint (example)",
     "summary": """Provide a default endpoint to import SO in UBL format.""",
-    "version": "14.0.1.1.0",
+    "version": "14.0.1.2.0",
     "development_status": "Alpha",
     "license": "AGPL-3",
     "website": "https://github.com/OCA/edi",
