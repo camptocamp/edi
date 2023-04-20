@@ -7,3 +7,4 @@ xmlunittest
 
 odoo14-addon-endpoint_route_handler @ git+https://github.com/OCA/web-api@refs/pull/3/head#subdirectory=setup/endpoint_route_handler
 odoo14-addon-edi_exchange_type_auto @ git+https://github.com/OCA/edi@refs/pull/663/head#subdirectory=setup/edi_exchange_type_auto
+odoo14-addon-sale_stock_line_customer_ref @ git+https://github.com/OCA/sale-workflow@refs/pull/2262/head#subdirectory=setup/sale_stock_line_customer_ref
