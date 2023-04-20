@@ -9,7 +9,7 @@
 
     Plug sale_order_import_ubl into EDI machinery.
     """,
-    "version": "14.0.1.0.0",
+    "version": "14.0.1.1.0",
     "development_status": "Alpha",
     "license": "AGPL-3",
     "website": "https://github.com/OCA/edi",
@@ -17,6 +17,6 @@
     "maintainers": ["simahawk"],
     "depends": ["edi_sale_ubl_oca"],
     "auto_install": False,
-    "data": ["data/edi_exchange_type.xml"],
+    "demo": ["demo/edi_exchange_type.xml"],
     "post_load": "post_load_hook",
 }
