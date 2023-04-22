@@ -5,16 +5,15 @@
 import os
 import unittest
 
-from odoo.tests.common import HttpSavepointCase
+from odoo.tests.common import HttpCase
 
 
 @unittest.skipIf(os.getenv("SKIP_HTTP_CASE"), "EDIEndpointHttpCase skipped")
-class EDIEndpointHttpCase(HttpSavepointCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
+class EDIEndpointHttpCase(HttpCase):
+    def setUp(self):
+        super().setUp()
         # force sync for demo records
-        cls.env["edi.endpoint"].search([])._handle_registry_sync()
+        self.env["edi.endpoint"].search([])._handle_registry_sync()
 
     def test_call1(self):
         response = self.url_open("/edi/demo/try")
