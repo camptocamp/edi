@@ -5,21 +5,29 @@
 import os
 import unittest
 
-from odoo.tests.common import HttpCase
+import requests
+
+from odoo import tools
+from odoo.tests.common import HttpSavepointCase
+
+HOST = "127.0.0.1"
+PORT = tools.config["http_port"]
 
 
 @unittest.skipIf(os.getenv("SKIP_HTTP_CASE"), "EDIEndpointHttpCase skipped")
-class EDIEndpointHttpCase(HttpCase):
-    def setUp(self):
-        super().setUp()
+class EDIEndpointHttpCase(HttpSavepointCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
         # force sync for demo records
-        self.env["edi.endpoint"].search([])._handle_registry_sync()
+        cls.env["edi.endpoint"].search([])._handle_registry_sync()
 
     def test_call1(self):
-        response = self.url_open("/edi/demo/try")
+        endpoint = "/edi/demo/try"
+        url = "http://{}:{}{}".format(HOST, PORT, endpoint)
+        response = requests.get(url)
         self.assertEqual(response.status_code, 401)
         # Let's login now
-        self.authenticate("admin", "admin")
-        response = self.url_open("/edi/demo/try")
+        response = requests.get(url, auth=("admin", "admin"))
         self.assertEqual(response.status_code, 200)
         self.assertIn("Created record:", response.content.decode())
