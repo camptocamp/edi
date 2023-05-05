@@ -5,28 +5,29 @@
 import os
 import unittest
 
-from odoo.tests.common import HttpCase
+import requests
+
+from odoo import tools
+from odoo.tests.common import HttpSavepointCase
+
+HOST = "127.0.0.1"
+PORT = tools.config["http_port"]
 
 
 @unittest.skipIf(os.getenv("SKIP_HTTP_CASE"), "EDIEndpointHttpCase skipped")
-class EDIEndpointHttpCase(HttpCase):
-    def setUp(self):
-        super().setUp()
-        # I don't know why but  when test_edi_endpoint runs before these tests
-        # the rollback of the exception catched within the test `test_archive_check`
-        # make the controller lookup fail.
-        # Since the whole routing registry machinery is going to be refactored
-        # in https://github.com/OCA/edi/pull/633
-        # let's survive w/ this forced registration for now.
-        self.env.ref("edi_endpoint_oca.edi_endpoint_demo_1")._register_controllers(
-            init=True
-        )
+class EDIEndpointHttpCase(HttpSavepointCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # force sync for demo records
+        cls.env["edi.endpoint"].search([])._handle_registry_sync()
 
     def test_call1(self):
-        response = self.url_open("/edi/demo/try")
+        endpoint = "/edi/demo/try"
+        url = "http://{}:{}{}".format(HOST, PORT, endpoint)
+        response = requests.get(url)
         self.assertEqual(response.status_code, 401)
         # Let's login now
-        self.authenticate("admin", "admin")
-        response = self.url_open("/edi/demo/try")
+        response = requests.get(url, auth=("admin", "admin"))
         self.assertEqual(response.status_code, 200)
         self.assertIn("Created record:", response.content.decode())
