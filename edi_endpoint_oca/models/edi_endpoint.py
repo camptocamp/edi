@@ -13,7 +13,7 @@ class EDIEndpoint(models.Model):
     """
 
     _name = "edi.endpoint"
-    _inherit = ["endpoint.mixin", "endpoint.route.sync.mixin"]
+    _inherit = ["endpoint.mixin"]
     _description = "EDI Endpoint"
 
     _endpoint_route_prefix = "/edi"
