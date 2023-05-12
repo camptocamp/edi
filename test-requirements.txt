@@ -4,4 +4,3 @@ responses
 # Python Dependencies
 PyYAML
 xmlunittest
-requests
