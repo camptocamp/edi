@@ -28,6 +28,10 @@
             <cbc:IssueTime
                 t-esc="time_to_string(record.date_order)"
             >12:30:00</cbc:IssueTime>
+            <cbc:OrderResponseCode
+                t-if="record.edi_state_id"
+                t-esc="record.edi_state_id.code"
+            />
             <cbc:Note t-esc="record.note" />
             <cbc:DocumentCurrencyCode
                 t-esc="record.currency_id.name"
