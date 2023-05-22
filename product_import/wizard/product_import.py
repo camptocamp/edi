@@ -147,9 +147,12 @@ class ProductImport(models.TransientModel):
 
     @api.model
     def _prepare_product(self, parsed_product, chatter_msg, seller=None):
+        product_company = self.env.context.get("product_company", False)
         try:
-            product = self._bdimport.with_context(active_test=False)._match_product(
-                parsed_product, chatter_msg, seller=seller
+            product = (
+                self._bdimport.with_company(product_company)
+                .with_context(active_test=False)
+                ._match_product(parsed_product, chatter_msg, seller=seller)
             )
         except UserError:
             product = None
@@ -167,7 +170,7 @@ class ProductImport(models.TransientModel):
             "type": "product",
             "uom_id": uom.id,
             "uom_po_id": uom.id,
-            "company_id": self.env.context.get("company_id") or False,
+            "company_id": product_company,
         }
         seller_info = {
             "name": seller and seller.id or False,
@@ -215,7 +218,7 @@ class ProductImport(models.TransientModel):
             raise UserError(_("This catalogue doesn't have any product!"))
         company_id = self._get_company_id(catalogue)
         seller = self._get_seller(catalogue)
-        self.with_context(company_id=company_id)._create_products(
+        self.with_context(product_company=company_id)._create_products(
             catalogue, seller, filename=self.product_filename
         )
         return {"type": "ir.actions.act_window_close"}
