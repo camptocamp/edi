@@ -26,6 +26,7 @@
         "data/edi_state.xml",
         "templates/qweb_tmpl_party.xml",
         "templates/qweb_tmpl_order_response.xml",
+        "views/sale_order.xml",
     ],
     "demo": [
         "demo/edi_exchange_type.xml",
