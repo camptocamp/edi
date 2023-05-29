@@ -139,7 +139,8 @@ class EDIExchangeType(models.Model):
         comodel_name="res.partner",
         help=(
             "You can use this field to limit generating/processing exchanges "
-            "for specific partners."
+            "for specific partners. "
+            "Use it directly or within models rules (domain or snippet)."
         ),
     )
 
