@@ -196,7 +196,9 @@ class EDIAutoExchangeConsumerMixin(models.AbstractModel):
                 if type_id in skip_type_ids:
                     continue
                 exc_type = self.env["edi.exchange.type"].browse(int(type_id))
-                if not exc_type.is_record_partner_enabled(rec):
+                if "partner_id" in rec._fields and not exc_type.is_partner_enabled(
+                    rec.partner_id
+                ):
                     skip_rec_ids.add(rec.id)
                     skip_reason = f"Exchange not enabled for partner on rec={rec.id}"
                     self._edi_auto_log_skip(operation, skip_reason, exc_type=exc_type)
