@@ -225,6 +225,7 @@ class EDIBackend(models.Model):
         except UnicodeDecodeError:
             pass
         if output:
+            message = exchange_record._exchange_status_message("generate_ok")
             try:
                 self._validate_data(exchange_record, output)
             except EDIValidationError as err:
