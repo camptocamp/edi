@@ -49,6 +49,7 @@ class EDIExchangeTypeRule(models.Model):
             ("custom", "Custom"),
         ],
         required=True,
+        default="form_btn",
         help=KIND_HELP,
     )
     form_btn_label = fields.Char(
