@@ -138,3 +138,10 @@ class EDIBackendTestOutputJobsCase(EDIBackendCommonComponentRegistryTestCase):
             trap.assert_enqueued_job(
                 self.backend.exchange_record_model.action_exchange_generate,
             )
+            trap.assert_enqueued_job(
+                self.backend.exchange_record_model.action_exchange_send,
+            )
+            self.backend._check_output_exchange_sync(record_ids=self.record.ids)
+            self.backend._check_output_exchange_sync(record_ids=self.record.ids)
+            # identity key should prevent having new jobs
+            trap.assert_jobs_count(2)

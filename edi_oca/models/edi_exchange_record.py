@@ -9,6 +9,8 @@ from collections import defaultdict
 
 from odoo import _, api, exceptions, fields, models
 
+from odoo.addons.queue_job.job import identity_exact
+
 _logger = logging.getLogger(__name__)
 
 
@@ -566,6 +568,8 @@ class EDIExchangeRecord(models.Model):
         channel = self.type_id.sudo().job_channel_id
         if channel:
             params["channel"] = channel.complete_name
+        # Avoid generating the same job for the same record if existing
+        params["identity_key"] = identity_exact
         return params
 
     def with_delay(self, **kw):
