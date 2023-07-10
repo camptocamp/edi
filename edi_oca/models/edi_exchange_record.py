@@ -9,6 +9,8 @@ from collections import defaultdict
 
 from odoo import _, api, exceptions, fields, models
 
+from odoo.addons.queue_job.job import identity_exact
+
 _logger = logging.getLogger(__name__)
 
 
@@ -272,6 +274,7 @@ class EDIExchangeRecord(models.Model):
     def _exchange_status_messages(self):
         return {
             # status: message
+            "generate_ok": _("Exchange data generated"),
             "send_ok": _("Exchange sent"),
             "send_ko": _(
                 "An error happened while sending. Please check exchange record info."
@@ -564,9 +567,16 @@ class EDIExchangeRecord(models.Model):
         channel = self.type_id.sudo().job_channel_id
         if channel:
             params["channel"] = channel.complete_name
+        # Avoid generating the same job for the same record if existing
+        params["identity_key"] = identity_exact
         return params
 
     def with_delay(self, **kw):
         params = self._job_delay_params()
         params.update(kw)
         return super().with_delay(**params)
+
+    def delayable(self, **kw):
+        params = self._job_delay_params()
+        params.update(kw)
+        return super().delayable(**params)
