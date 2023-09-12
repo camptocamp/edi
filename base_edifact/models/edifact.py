@@ -4,9 +4,7 @@ import logging
 from pydifact.segmentcollection import Interchange, Message
 from pydifact.segments import Segment
 
-from odoo import _, api, exceptions, models
-
-from odoo.addons.edi_party_data_oca.utils import get_party_data_component
+from odoo import api, models
 
 logger = logging.getLogger(__name__)
 
@@ -65,13 +63,6 @@ class BasePydifact(models.AbstractModel):
             msg["segments"] = segms
             obj.append(msg)
         return obj
-
-    @api.model
-    def get_party_data(self, exchange_record, partner, raise_if_not_found=True):
-        provider = get_party_data_component(exchange_record, partner)
-        if not provider and raise_if_not_found:
-            raise exceptions.UserError(_("No info provider found for party data"))
-        return provider.get_party() if provider else None
 
     @api.model
     def _loads_edifact(self, order_file):
