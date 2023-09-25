@@ -17,6 +17,7 @@ class TestEdifactOrderImport(TransactionCase):
             edifact_file = expected._get_content()
             wiz = self.env["sale.order.import"].create(
                 {
+                    "import_type": "edifact",
                     "order_file": base64.b64encode(edifact_file),
                     "order_filename": filename,
                 }

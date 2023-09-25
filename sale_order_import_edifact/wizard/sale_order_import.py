@@ -14,6 +14,9 @@ class SaleOrderImportEdifact(models.TransientModel):
     _name = "sale.order.import"
     _inherit = ["sale.order.import", "base.edifact"]
 
+    import_type = fields.Selection(
+        selection_add=[("edifact", "EDIFACT")], ondelete={"edifact": "cascade"}
+    )
     state = fields.Selection(
         selection_add=[("tech", "Technical")], ondelete={"tech": "set default"}
     )
@@ -34,7 +37,6 @@ class SaleOrderImportEdifact(models.TransientModel):
     @api.onchange("order_file")
     def order_file_change(self):
         if self.edifact_ok:
-            self.csv_import = False
             self.doc_type = self.env.context.get("doc_type", "rfq")
             self.price_source = "order"
         else:
@@ -66,21 +68,18 @@ class SaleOrderImportEdifact(models.TransientModel):
         action["res_id"] = self.id
         return action
 
-    # Parser hook
-    def _parse_file(self, filename, filecontent, detect_doc_type=False):
-        "Called from parse_order()"
-        parsed_order = super(SaleOrderImportEdifact, self)._parse_file(
-            filename, filecontent, detect_doc_type
-        )
-        if not parsed_order and self.edifact_ok:
-            self.env.context.get("release", "d96a")
-            interchange = self._loads_edifact(filecontent)
-            parsed_order = self.parse_edifact_sale_order(interchange)
-        return parsed_order
+    def _get_supported_types(self):
+        # Add more types for EDIFACT
+        res = super()._get_supported_types()
+        res.update({"edifact": ("text/plain")})
+        return res
 
     @api.model
-    def parse_edifact_sale_order(self, interchange):
+    def parse_edifact_order(self, filecontent, detect_doc_type):
         # https://github.com/nerdocs/pydifact/blob/master/pydifact/segmentcollection.py
+        if not self.edifact_ok:
+            return None
+        interchange = self._loads_edifact(filecontent)
         header = interchange.get_header_segment()
         # > UNB segment: [['UNOA', '2'], ['5450534000000', '14'],
         # ['8435337000003', '14'], ['230306', '0435'], '5506']
