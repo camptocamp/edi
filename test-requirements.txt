@@ -1,0 +1,4 @@
+odoo_test_helper
+odoo-addon-edi_party_data_oca @ git+https://github.com/OCA/edi.git@refs/pull/812/head#subdirectory=setup/edi_party_data_oca
+odoo-addon-base_edifact @ git+https://github.com/OCA/edi.git@refs/pull/813/head#subdirectory=setup/base_edifact
+odoo-addon-sale_order_import @ git+https://github.com/OCA/edi.git@refs/pull/816/head#subdirectory=setup/sale_order_import
