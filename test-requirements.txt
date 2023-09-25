@@ -1,0 +1,2 @@
+odoo_test_helper
+odoo-addon-sale_order_import @ git+https://github.com/OCA/edi.git@refs/pull/816/head#subdirectory=setup/sale_order_import
