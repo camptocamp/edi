@@ -1,0 +1,1 @@
+This module will support import a DespatchAdvice (xml), sent by a Supplier to confirm that the ordered goods are being sent to us
