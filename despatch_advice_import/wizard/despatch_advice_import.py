@@ -3,6 +3,7 @@
 
 import logging
 import mimetypes
+from base64 import b64decode, b64encode
 
 from lxml import etree
 
@@ -80,7 +81,7 @@ class DespatchAdviceImport(models.TransientModel):
         logger.debug("Result of OrderResponse parsing: ", parsed_despatch_advice)
         if "attachments" not in parsed_despatch_advice:
             parsed_despatch_advice["attachments"] = {}
-        parsed_despatch_advice["attachments"][filename] = document.encode("base64")
+        parsed_despatch_advice["attachments"][filename] = b64encode(document)
         if "chatter_msg" not in parsed_despatch_advice:
             parsed_despatch_advice["chatter_msg"] = []
         if (
@@ -124,15 +125,13 @@ class DespatchAdviceImport(models.TransientModel):
             )
         )
 
-    @api.multi
     def process_document(self):
         self.ensure_one()
         parsed_order_document = self.parse_despatch_advice(
-            self.document.decode("base64"), self.filename
+            b64decode(self.document), self.filename
         )
         self.process_data(parsed_order_document)
 
-    @api.model
     def process_data(self, parsed_order_document):
         bdio = self.env["business.document.import"]
         po_name = parsed_order_document.get("ref")
@@ -146,12 +145,13 @@ class DespatchAdviceImport(models.TransientModel):
                 lines_by_id[int(line["order_line_id"])]["backorder_qty"] += line[
                     "backorder_qty"
                 ]
-                lines_by_id[int(line["order_line_id"])]["product_lot"].append(
-                    line["product_lot"]
-                )
-                lines_by_id[int(line["order_line_id"])]["product_lot"] = list(
-                    set(lines_by_id[int(line["order_line_id"])]["product_lot"])
-                )
+                if "product_lot" in line:
+                    lines_by_id[int(line["order_line_id"])]["product_lot"].append(
+                        line["product_lot"]
+                    )
+                    lines_by_id[int(line["order_line_id"])]["product_lot"] = list(
+                        set(lines_by_id[int(line["order_line_id"])]["product_lot"])
+                    )
                 lines_by_id[int(line["order_line_id"])]["uom"]["unece_code"].append(
                     line["uom"]["unece_code"]
                 )
@@ -160,9 +160,10 @@ class DespatchAdviceImport(models.TransientModel):
                 )
             else:
                 lines_by_id[int(line["order_line_id"])] = line
-                lines_by_id[int(line["order_line_id"])]["product_lot"] = [
-                    lines_by_id[int(line["order_line_id"])]["product_lot"]
-                ]
+                if "product_lot" in line:
+                    lines_by_id[int(line["order_line_id"])]["product_lot"] = [
+                        lines_by_id[int(line["order_line_id"])]["product_lot"]
+                    ]
                 lines_by_id[int(line["order_line_id"])]["uom"]["unece_code"] = [
                     lines_by_id[int(line["order_line_id"])]["uom"]["unece_code"]
                 ]
@@ -176,19 +177,19 @@ class DespatchAdviceImport(models.TransientModel):
             if line_info["ref"]:
                 if order.name != line_info["ref"]:
                     bdio.user_error_wrap(
-                        _("No purchase order found for name %s.") % line_info["ref"]
+                        "",
+                        "",
+                        _("No purchase order found for name %s.") % line_info["ref"],
                     )
             else:
                 if order.name != po_name:
                     bdio.user_error_wrap(
-                        _("No purchase order found for name %s.") % po_name
+                        "", "", _("No purchase order found for name %s.") % po_name
                     )
-
             stock_moves = line.move_ids.filtered(
                 lambda x: x.state not in ("cancel", "done")
             )
             moves_qty = sum(stock_moves.mapped("product_qty"))
-
             if line_info["qty"] == moves_qty:
                 self._process_accepted(stock_moves, parsed_order_document)
             elif not line_info["qty"] and not line_info["backorder_qty"]:
@@ -196,7 +197,6 @@ class DespatchAdviceImport(models.TransientModel):
             else:
                 self._process_conditional(stock_moves, parsed_order_document, line_info)
 
-    @api.model
     def _process_rejected(self, stock_moves, parsed_order_document):
         parsed_order_document["chatter_msg"] = (
             parsed_order_document["chatter_msg"] or []
@@ -205,9 +205,8 @@ class DespatchAdviceImport(models.TransientModel):
             _("Delivery cancelled by the supplier.")
         )
 
-        stock_moves.action_cancel()
+        stock_moves._action_cancel()
 
-    @api.model
     def _process_accepted(self, stock_moves, parsed_order_document):
         parsed_order_document["chatter_msg"] = (
             parsed_order_document["chatter_msg"] or []
@@ -215,10 +214,9 @@ class DespatchAdviceImport(models.TransientModel):
         parsed_order_document["chatter_msg"].append(
             _("Delivery confirmed by the supplier.")
         )
-        stock_moves.action_confirm()
-        stock_moves.action_assign()
+        stock_moves._action_confirm()
+        stock_moves._action_assign()
 
-    @api.model
     def _process_conditional(self, moves, parsed_order_document, line):
         precision = self.env["decimal.precision"].precision_get(
             "Product Unit of Measure"
@@ -240,18 +238,26 @@ class DespatchAdviceImport(models.TransientModel):
         move_ids_to_cancel = []
         for move in moves:
             self._check_picking_status(move.picking_id)
-            if float_compare(qty, move.product_qty, precision_digits=precision) >= 0:
+            if (
+                float_compare(qty, move.product_uom_qty, precision_digits=precision)
+                >= 0
+            ):
                 # qty planned => qty into the stock move: Keep it
-                qty -= move.product_qty
+                qty -= move.product_uom_qty
                 continue
             if (
                 qty
-                and float_compare(qty, move.product_qty, precision_digits=precision) < 0
+                and float_compare(qty, move.product_uom_qty, precision_digits=precision)
+                < 0
             ):
                 # qty planned < qty into the stock move: Split it
-                new_move_id = move.split(move.product_qty - qty)
-                move = self.env["stock.move"].browse(new_move_id)
-            qty -= move.product_qty
+                new_vals = move._split(move.product_uom_qty - qty)
+                move.quantity_done = move.product_qty
+                move._action_done()
+                move = self.env["stock.move"].create(new_vals[0])
+                move._action_confirm()
+
+            qty -= move.product_uom_qty
             if not backorder_qty:
                 # if no backorder -> we must cancel the move
                 move_ids_to_cancel.append(move.id)
@@ -262,16 +268,19 @@ class DespatchAdviceImport(models.TransientModel):
             # remaining qty
             if (
                 float_compare(
-                    backorder_qty, move.product_qty, precision_digits=precision
+                    backorder_qty, move.product_uom_qty, precision_digits=precision
                 )
                 < 0
             ):
                 # backorder_qty < qty into the move -> split the move
                 # anf cancel remaining qty
-                move_ids_to_cancel.append(move.split(move.product_qty - backorder_qty))
+                move._action_confirm(merge=False)
+                new_vals = move._split(move.product_uom_qty - backorder_qty)
+                move_ids_to_cancel.append(self.env["stock.move"].create(new_vals[0]).id)
 
-            backorder_qty -= move.product_qty
+            backorder_qty -= move.product_uom_qty
             move_ids_to_backorder.append(move.id)
+
         # move backorder moves to a backorder
         if move_ids_to_backorder:
             moves_to_backorder = self.env["stock.move"].browse(move_ids_to_backorder)
@@ -279,12 +288,8 @@ class DespatchAdviceImport(models.TransientModel):
         # cancel moves to cancel
         if move_ids_to_cancel:
             moves_to_cancel = self.env["stock.move"].browse(move_ids_to_cancel)
-            moves_to_cancel.action_cancel()
-            moves_to_cancel.write({"note": _("No backorder planned by the supplier.")})
-        # Reset Operations
-        moves[0].picking_id.do_prepare_partial()
+            moves_to_cancel._action_cancel()
 
-    @api.model
     def _add_moves_to_backorder(self, moves):
         """
         Add the move the picking's backorder
@@ -297,7 +302,7 @@ class DespatchAdviceImport(models.TransientModel):
         backorder = StockPicking.search([("backorder_id", "=", current_picking.id)])
         if not backorder:
             date_done = current_picking.date_done
-            current_picking._create_backorder(backorder_moves=moves)
+            current_picking._create_backorder()
             # preserve date_done....
             current_picking.date_done = date_done
         else:
@@ -305,14 +310,13 @@ class DespatchAdviceImport(models.TransientModel):
             backorder.action_confirm()
             backorder.action_assign()
 
-    @api.model
     def _check_picking_status(self, picking):
         """
         The picking operations have already begun
         :param picking:
         :return:
         """
-        if any(operation.qty_done != 0 for operation in picking.pack_operation_ids):
+        if any(line.qty_done != 0 for line in picking.move_line_ids):
             raise UserError(
                 _(
                     "Some Pack Operations have already started! "
