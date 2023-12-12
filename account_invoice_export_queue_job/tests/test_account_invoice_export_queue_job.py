@@ -1,81 +1,30 @@
-# Copyright 2020 Camptocamp SA
+# Copyright 2023 Camptocamp SA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
-from odoo.tests.common import SingleTransactionCase
+from unittest.mock import MagicMock, patch
+
+from odoo.addons.account_invoice_export.tests.common import CommonCase
+from odoo.addons.queue_job.tests.common import mock_with_delay
 
 
-class TestExportAcountInvoice(SingleTransactionCase):
+class TestExportAcountInvoice(CommonCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
-        cls.send_exception = cls.env.ref(
-            "account_invoice_export.mail_activity_transmit_warning"
-        )
-        cls.transmit_method = cls.env["transmit.method"].create(
-            {
-                "name": "HttpPost",
-                "code": "httppost",
-                "customer_ok": True,
-                "send_through_http": True,
-                "destination_url": "https://example.com/post",
-                "destination_user": "user",
-                "destination_pwd": "pwd",
-            }
-        )
-        cls.country = cls.env.ref("base.ch")
-        cls.customer = cls.env.ref("base.res_partner_1")
-        cls.account = cls.env["account.account"].search(
-            [
-                (
-                    "user_type_id",
-                    "=",
-                    cls.env.ref("account.data_account_type_revenue").id,
-                )
-            ],
-            limit=1,
-        )
-        cls.product = cls.env.ref("product.product_product_1")
-        cls.invoice_1 = cls.env["account.move"].create(
-            {
-                "partner_id": cls.customer.id,
-                "move_type": "out_invoice",
-                "transmit_method_id": cls.transmit_method.id,
-                "invoice_line_ids": [
-                    (
-                        0,
-                        0,
-                        {
-                            "account_id": cls.account.id,
-                            "product_id": cls.product.product_variant_ids[:1].id,
-                            "name": "Product 1",
-                            "quantity": 4.0,
-                            "price_unit": 123.00,
-                        },
-                    )
-                ],
-            }
-        )
-        cls.invoice_1.action_post()
 
-    def test_log_error_in_chatter(self):
-        values = {
-            "job_id": "13:123:123",
-            "send_error": 500,
-            "transmit_method_name": "SendMethod",
-        }
-        self.invoice_1.log_error_sending_invoice(values)
-        self.assertEqual(len(self.invoice_1.activity_ids), 1)
-        self.assertEqual(
-            self.invoice_1.activity_ids[0].activity_type_id, self.send_exception
-        )
-        # Multiple error only one exception message
-        self.invoice_1.log_error_sending_invoice(values)
-        self.assertEqual(len(self.invoice_1.activity_ids), 1)
-        # At success exception messages are cleared
-        self.invoice_1.log_success_sending_invoice()
-        self.assertEqual(len(self.invoice_1.activity_ids), 0)
+    @patch("odoo.addons.account_invoice_export.models.account_move.requests")
+    def test_invoice_export_job_is_delayed(self, mock_requests):
+        """Check export invoice is run as a job."""
+        method_name = "_job_export_invoice"
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_requests.post.return_value = mock_response
 
-    def test_get_file_description(self):
-        res = self.invoice_1._get_file_for_transmission_method()
-        self.assertTrue(res["file"])
+        with mock_with_delay() as (delayable_cls, delayable):
+            self.invoice_1.export_invoice()
+            self.assertEqual(delayable_cls.call_count, 1)
+            delay_args, delay_kwargs = delayable_cls.call_args
+            self.assertEqual(delay_args, (self.invoice_1,))
+            method = getattr(delayable, method_name)
+            self.assertEqual(method.call_count, 1)
+            self.assertEqual(delay_kwargs["description"], "Export eBill to HttpPost")
