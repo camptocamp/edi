@@ -2,7 +2,7 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
 {
-    "name": "Account Invoice Export Queue Job",
+    "name": "Account Invoice Export Job",
     "version": "16.0.1.0.0",
     "category": "Invoicing Management",
     "license": "AGPL-3",

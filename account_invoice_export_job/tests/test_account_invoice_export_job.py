@@ -7,7 +7,7 @@ from odoo.addons.account_invoice_export.tests.common import CommonCase
 from odoo.addons.queue_job.tests.common import mock_with_delay
 
 
-class TestExportAcountInvoice(CommonCase):
+class TestExportAcountInvoiceJob(CommonCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
