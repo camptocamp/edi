@@ -15,15 +15,15 @@ class BaseWamasUbl(models.AbstractModel):
     _description = "Methods to convert WAMAS to UBL XML files and vice versa"
 
     @api.model
-    def parse_wamas2dict(self, str_file):
+    def wamas2dict(self, str_file):
         return wamas2dict(str_file)
 
     @api.model
-    def parse_dict2ubl(self, template, data):
+    def dict2ubl(self, template, data):
         return dict2ubl(template, data)
 
     @api.model
-    def parse_wamas2ubl(self, str_file, extra_data=False):
+    def wamas2ubl(self, str_file, extra_data=False):
         return wamas2ubl(str_file, extra_data=extra_data)
 
     @api.model
