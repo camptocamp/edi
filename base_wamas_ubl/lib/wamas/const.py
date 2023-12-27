@@ -167,7 +167,7 @@ MAPPING_UNITCODE_WAMAS_TO_UBL = {
     "unitCode": MappingDict(
         {
             "BOT": "XBQ",  # plastic bottle
-            "BOUT": "XBQ",  # plastic bottle
+            "BOUT": "C62",  # Unit
             "BOITE": "XBX",  # box
             "LITRE": "LTR",  # litre
             "PET": "XBO",  # glass bottle
@@ -181,7 +181,6 @@ MAPPING_UNITCODE_WAMAS_TO_UBL = {
 MAPPING_UNITCODE_UBL_TO_WAMAS = {"unitCode": MappingDict()}
 for key, value in MAPPING_UNITCODE_WAMAS_TO_UBL["unitCode"].items():
     MAPPING_UNITCODE_UBL_TO_WAMAS["unitCode"][value] = key
-MAPPING_UNITCODE_UBL_TO_WAMAS["unitCode"]["C62"] = "BOT"  # Unit
 
 
 ##

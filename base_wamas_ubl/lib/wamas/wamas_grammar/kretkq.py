@@ -125,7 +125,7 @@ grammar_convert = OrderedDict(
             "dp": False,
             "dict_key": False,
             "df_val": False,
-            "df_func": False,
+            "df_func": "get_current_datetime",
         },
         "IvKretk_Info2Host": {
             "type": "str",
