@@ -13,7 +13,7 @@ class ProductPackaging(models.Model):
         Export the packaging data as WAMAS format
 
         :return: packaging data as WAMAS format
-        :rtype: a byte
+        :rtype: bytes
         """
         self.ensure_one()
         if not telegram_type:

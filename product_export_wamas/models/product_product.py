@@ -8,7 +8,7 @@ from odoo import _, models
 class ProductProduct(models.Model):
     _inherit = "product.product"
 
-    def _wamas_export(self, specific_dict=None, telegram=False):
+    def _wamas_export(self, specific_dict=None, telegram_type=False):
         """
         Export the product data as WAMAS format
 
@@ -16,10 +16,10 @@ class ProductProduct(models.Model):
         :rtype: bytes
         """
         self.ensure_one()
-        if not telegram:
-            raise ValueError(_("Need telegram for exporting"))
+        if not telegram_type:
+            raise ValueError(_("Please define expected telegram type."))
         dict_product = self.read()[0]
         # If having a specific dict for the product, we use it
         if specific_dict and isinstance(specific_dict, dict):
             dict_product = specific_dict
-        return self.env["base.wamas.ubl"].dict2wamas(dict_product, telegram)
+        return self.env["base.wamas.ubl"].dict2wamas(dict_product, telegram_type)
