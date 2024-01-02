@@ -22,7 +22,7 @@
             </cac:PostalAddress>
             <cac:Contact>
                 <cbc:Telephone>Ron Gibson</cbc:Telephone>
-                <cbc:Telefax></cbc:Telefax>
+                <cbc:Telefax/>
                 <cbc:ElectronicMail>ron.gibson76@example.com</cbc:ElectronicMail>
             </cac:Contact>
         </cac:Party>
@@ -66,10 +66,10 @@
         </cac:Delivery>
     </cac:Shipment>
     <cac:DespatchLine>
-        <cbc:ID/>
+        <cbc:ID>1</cbc:ID>
         <cbc:DeliveredQuantity unitCode="C62">1536.0</cbc:DeliveredQuantity>
         <cac:OrderLineReference>
-            <cbc:LineID>1</cbc:LineID>
+            <cbc:LineID/>
         </cac:OrderLineReference>
         <cac:Item>
             <cac:BuyersItemIdentification>
@@ -77,10 +77,10 @@
             </cac:BuyersItemIdentification>
         </cac:Item>
     </cac:DespatchLine><cac:DespatchLine>
-        <cbc:ID/>
+        <cbc:ID>2</cbc:ID>
         <cbc:DeliveredQuantity unitCode="XBO">5184.0</cbc:DeliveredQuantity>
         <cac:OrderLineReference>
-            <cbc:LineID>2</cbc:LineID>
+            <cbc:LineID/>
         </cac:OrderLineReference>
         <cac:Item>
             <cac:BuyersItemIdentification>
@@ -88,10 +88,10 @@
             </cac:BuyersItemIdentification>
         </cac:Item>
     </cac:DespatchLine><cac:DespatchLine>
-        <cbc:ID/>
+        <cbc:ID>3</cbc:ID>
         <cbc:DeliveredQuantity unitCode="C62">3840.0</cbc:DeliveredQuantity>
         <cac:OrderLineReference>
-            <cbc:LineID>3</cbc:LineID>
+            <cbc:LineID/>
         </cac:OrderLineReference>
         <cac:Item>
             <cac:BuyersItemIdentification>
@@ -99,10 +99,10 @@
             </cac:BuyersItemIdentification>
         </cac:Item>
     </cac:DespatchLine><cac:DespatchLine>
-        <cbc:ID/>
+        <cbc:ID>4</cbc:ID>
         <cbc:DeliveredQuantity unitCode="XBO">3072.0</cbc:DeliveredQuantity>
         <cac:OrderLineReference>
-            <cbc:LineID>4</cbc:LineID>
+            <cbc:LineID/>
         </cac:OrderLineReference>
         <cac:Item>
             <cac:BuyersItemIdentification>
@@ -110,10 +110,10 @@
             </cac:BuyersItemIdentification>
         </cac:Item>
     </cac:DespatchLine><cac:DespatchLine>
-        <cbc:ID/>
+        <cbc:ID>5</cbc:ID>
         <cbc:DeliveredQuantity unitCode="XBO">3024.0</cbc:DeliveredQuantity>
         <cac:OrderLineReference>
-            <cbc:LineID>5</cbc:LineID>
+            <cbc:LineID/>
         </cac:OrderLineReference>
         <cac:Item>
             <cac:BuyersItemIdentification>

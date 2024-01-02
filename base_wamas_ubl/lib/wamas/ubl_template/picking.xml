@@ -65,7 +65,9 @@
 	<cac:DeliveryCustomerParty>
 		<cac:Party>
             <cac:PartyIdentification>
-                <cbc:ID><t t-raw="record.IvAusk_KST_KuNr" /></cbc:ID>
+                <cbc:ID schemeName="ODOO:ID"><t
+                        t-raw="record.IvAusk_KST_KuNr"
+                    /></cbc:ID>
             </cac:PartyIdentification>
 			<cac:PartyName>
 				<cbc:Name><t
@@ -137,12 +139,12 @@
 				<cbc:Measure><t t-raw="line.package.IvTek_GesGew" /></cbc:Measure>
 			</cac:GrossWeightMeasure>
 		</cac:Shipment>
-		<cbc:ID><t t-raw="line_index + 1"/></cbc:ID>
+		<cbc:ID><t t-raw="line_index + 1" /></cbc:ID>
         <cbc:DeliveredQuantity
             t-att-unitCode="MAPPING['unitCode'][line.IvArt_HOSTUNITS_HostEinh] or MAPPING['unitCode'][line.IvArt_Bestand_Einheit]"
         ><t t-raw="line.Mngs_Mng" /></cbc:DeliveredQuantity>
 		<cac:OrderLineReference>
-            <cbc:LineID><t t-raw="line.IvAusp_UrAusId_AusNr" /></cbc:LineID>
+            <cbc:LineID><t t-raw="line.IvAusp_HostPosNr" /></cbc:LineID>
 		</cac:OrderLineReference>
 		<cac:Item>
 			<cac:BuyersItemIdentification>

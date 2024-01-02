@@ -3,7 +3,7 @@
     <cbc:ID/>
     <cbc:IssueDate>2023-05-01</cbc:IssueDate>
     <cac:OrderReference>
-        <cbc:ID/>
+        <cbc:ID>1711980</cbc:ID>
         <cbc:IssueDate>2023-05-01</cbc:IssueDate>
     </cac:OrderReference>
     <cac:DespatchSupplierParty>
@@ -66,10 +66,10 @@
         </cac:Delivery>
     </cac:Shipment>
     <cac:DespatchLine>
-        <cbc:ID>1711980</cbc:ID>
+        <cbc:ID>1</cbc:ID>
         <cbc:DeliveredQuantity unitCode="C62">144.0</cbc:DeliveredQuantity>
         <cac:OrderLineReference>
-            <cbc:LineID>1</cbc:LineID>
+            <cbc:LineID>1711980</cbc:LineID>
         </cac:OrderLineReference>
         <cac:Item>
             <cac:BuyersItemIdentification>
