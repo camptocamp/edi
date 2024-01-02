@@ -3,7 +3,7 @@
 	<cbc:ID>GE 2/120185</cbc:ID>
 	<cbc:IssueDate>2023-05-01</cbc:IssueDate>
 	<cac:OrderReference>
-		<cbc:ID>1673982/1701778</cbc:ID>
+		<cbc:ID>1701778</cbc:ID>
 	</cac:OrderReference>
 	<cac:DespatchSupplierParty>
 		<cbc:CustomerAssignedAccountID/>
@@ -36,7 +36,7 @@
 	<cac:DeliveryCustomerParty>
 		<cac:Party>
 			<cac:PartyIdentification>
-				<cbc:ID>4009542</cbc:ID>
+				<cbc:ID schemeName="ODOO:ID">4009542</cbc:ID>
 			</cac:PartyIdentification>
 			<cac:PartyName>
 				<cbc:Name>Deco Addict</cbc:Name>
@@ -80,10 +80,10 @@
 				<cbc:Measure>314.7</cbc:Measure>
 			</cac:GrossWeightMeasure>
 		</cac:Shipment>
-		<cbc:ID/>
-        <cbc:DeliveredQuantity unitCode="X4B">7.0</cbc:DeliveredQuantity>
+		<cbc:ID>1</cbc:ID>
+		<cbc:DeliveredQuantity unitCode="X4B">7.0</cbc:DeliveredQuantity>
 		<cac:OrderLineReference>
-			<cbc:LineID>1</cbc:LineID>
+			<cbc:LineID>000101</cbc:LineID>
 		</cac:OrderLineReference>
 		<cac:Item>
 			<cac:BuyersItemIdentification>
@@ -105,10 +105,10 @@
 				<cbc:Measure>314.7</cbc:Measure>
 			</cac:GrossWeightMeasure>
 		</cac:Shipment>
-		<cbc:ID/>
-        <cbc:DeliveredQuantity unitCode="X4B">8.0</cbc:DeliveredQuantity>
+		<cbc:ID>2</cbc:ID>
+		<cbc:DeliveredQuantity unitCode="X4B">8.0</cbc:DeliveredQuantity>
 		<cac:OrderLineReference>
-			<cbc:LineID>2</cbc:LineID>
+			<cbc:LineID>000101</cbc:LineID>
 		</cac:OrderLineReference>
 		<cac:Item>
 			<cac:BuyersItemIdentification>
