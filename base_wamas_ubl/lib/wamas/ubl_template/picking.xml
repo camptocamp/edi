@@ -65,7 +65,7 @@
 	<cac:DeliveryCustomerParty>
 		<cac:Party>
             <cac:PartyIdentification>
-                <cbc:ID><t t-raw="record.IvAusk_KST_KuNr" /></cbc:ID>
+                <cbc:ID schemeName="ODOO:ID"><t t-raw="record.IvAusk_KST_KuNr" /></cbc:ID>
             </cac:PartyIdentification>
 			<cac:PartyName>
 				<cbc:Name><t
