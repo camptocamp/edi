@@ -205,7 +205,9 @@ class TestBaseWamas(TransactionCase):
         dict_expected_output = literal_eval(
             file_open(dict_data["expected_output"], "r").read()
         )
-        lst_telegram_type, wamas_type = self.base_wamas_ubl.get_wamas_type(str_input)
+        dummy, lst_telegram_type, wamas_type = self.base_wamas_ubl.get_wamas_type(
+            str_input
+        )
         # Telegram Types
         self.assertEqual(lst_telegram_type, dict_expected_output["lst_telegram_type"])
         # Wamas Type

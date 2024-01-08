@@ -37,7 +37,7 @@ class BaseWamasUbl(models.AbstractModel):
     @api.model
     def get_wamas_type(self, str_file):
         data, lst_telegram_type, wamas_type = detect_wamas_type(str_file)
-        return lst_telegram_type, wamas_type
+        return data, lst_telegram_type, wamas_type
 
     @api.model
     def wamas2wamas(self, str_file):
