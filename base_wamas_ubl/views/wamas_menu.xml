@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <menuitem
+        id="menu_wamas_parent"
+        name="WAMAS"
+        parent="base_edi.menu_edi_root"
+        sequence="10"
+    />
+
+    <menuitem
+        id="wamas_ubl_wiz_check_menu"
+        name="Check WAMAS File"
+        parent="menu_wamas_parent"
+        action="wamas_ubl_wiz_check_action"
+        sequence="10"
+    />
+
+    <menuitem
+        id="wamas_ubl_wiz_simulate_menu"
+        name="Simulate WAMAS File"
+        parent="menu_wamas_parent"
+        action="wamas_ubl_wiz_simulate_action"
+        sequence="20"
+    />
+
+</odoo>
