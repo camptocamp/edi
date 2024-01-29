@@ -111,7 +111,7 @@ class TestBaseWamas(TransactionCase):
         wizard.btn_check()
         self.assertEqual(wizard.output, str_expected_output)
 
-    @freeze_time("2023-05-01")
+    @freeze_time("2023-12-20 09:11:16")
     def _wamas_ubl_wiz_simulate(
         self, input_file, expected_output_file, state="success"
     ):
