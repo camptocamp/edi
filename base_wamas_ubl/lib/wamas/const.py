@@ -145,12 +145,12 @@ LST_TELEGRAM_TYPE_IGNORE_W2D = ["AUSPQ", "TOURQ", "TAUSPQ"]
 
 DICT_TUPLE_KEY_RECEPTION = {
     ("WEAKQ", "WEAPQ"): (
-        "ubl_template/reception_wea.xml",
+        "ubl_template/reception.xml",
         ("WEAKQ", "IvWevk_WevId_WevNr"),
         ("WEAPQ", "IvWevp_WevId_WevNr"),
     ),
     ("KRETKQ", "KRETPQ"): (
-        "ubl_template/reception_kret.xml",
+        "ubl_template/return.xml",
         ("KRETKQ", "IvKretk_KretId_KretNr"),
         ("KRETPQ", "IvKretp_KretId_KretNr"),
     ),

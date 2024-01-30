@@ -63,7 +63,7 @@ grammar = OrderedDict(
             "length": 5,
             "dp": False,
             "ubl_path": False,
-            "df_val": "HOST",
+            "df_val": "ODOO",
             "df_func": False,
         },
         "RxWeap_ExtRef": {
