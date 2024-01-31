@@ -2,7 +2,7 @@ import ast
 import unittest
 
 from freezegun import freeze_time
-from utils import dict2wamas, file_open, file_path
+from utils import _set_string_bool, dict2wamas, file_open, file_path
 
 
 class TestUtils(unittest.TestCase):
@@ -28,6 +28,15 @@ class TestUtils(unittest.TestCase):
         for telegram, str_dict_input, expected_output in self.knownValuesLines:
             output = dict2wamas(ast.literal_eval(str_dict_input), telegram)
             self.assertEqual(output, expected_output)
+
+    def test_set_string_bool(self):
+        # Input is boolean
+        self.assertEqual(_set_string_bool(False, 1, False), "N")
+        self.assertEqual(_set_string_bool(True, 1, False), "J")
+
+        # Input is string
+        self.assertEqual(_set_string_bool("N", 1, False), "N")
+        self.assertEqual(_set_string_bool("J", 1, False), "J")
 
 
 if __name__ == "__main__":
