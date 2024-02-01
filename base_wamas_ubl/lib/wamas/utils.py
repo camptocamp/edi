@@ -233,26 +233,23 @@ def convert_unit_code(key, val, unit_mapping=None):
     return val
 
 
-def get_address_elements(dict_item):
+def get_address_elements(dict_item, party_type="DeliveryCustomerParty"):
     return {
         "ContactName": dict_item.get(
-            "DespatchAdvice.cac:DeliveryCustomerParty.cac:Party.cac:Contact.cbc:Name"
+            f"DespatchAdvice.cac:{party_type}.cac:Party.cac:Contact.cbc:Name"
         ),
         "PartyName": dict_item.get(
-            "DespatchAdvice.cac:DeliveryCustomerParty."
-            "cac:Party.cac:PartyName.cbc:Name"
+            f"DespatchAdvice.cac:{party_type}.cac:Party.cac:PartyName.cbc:Name"
         ),
         "Department": dict_item.get(
-            "DespatchAdvice.cac:DeliveryCustomerParty."
-            "cac:Party.cac:PostalAddress.cbc:Department"
+            f"DespatchAdvice.cac:{party_type}.cac:Party.cac:PostalAddress.cbc:Department"
         ),
         "StreetName": dict_item.get(
-            "DespatchAdvice.cac:DeliveryCustomerParty."
-            "cac:Party.cac:PostalAddress.cbc:StreetName"
+            f"DespatchAdvice.cac:{party_type}.cac:Party.cac:PostalAddress.cbc:StreetName"
         ),
         "AdditionalStreetName": dict_item.get(
-            "DespatchAdvice.cac:DeliveryCustomerParty."
-            "cac:Party.cac:PostalAddress.cbc:AdditionalStreetName"
+            f"DespatchAdvice.cac:{party_type}.cac:Party.cac:PostalAddress."
+            "cbc:AdditionalStreetName"
         ),
     }
 
@@ -386,7 +383,13 @@ def generate_wamas_line(dict_item, grammar, **kwargs):  # noqa: C901
             # TODO: Consider refactoring to use classes
             # or provide a better way to determine arguments.
             elif "get_Adrs_" in df_func:
-                address_elements = get_address_elements(dict_item)
+                if df_func.startswith("supplier"):
+                    address_elements = get_address_elements(
+                        dict_item, "DespatchSupplierParty"
+                    )
+                    df_func = df_func[9:]
+                else:
+                    address_elements = get_address_elements(dict_item)
                 args = (address_elements,)
 
             val = globals()[df_func](*args)
