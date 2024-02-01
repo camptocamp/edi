@@ -4,6 +4,7 @@
 
 from odoo import _, api, models
 
+from ..lib.wamas.structure import MappingDict
 from ..lib.wamas.ubl2wamas import ubl2wamas
 from ..lib.wamas.utils import (
     detect_wamas_type,
@@ -25,19 +26,74 @@ class BaseWamasUbl(models.AbstractModel):
 
     @api.model
     def dict2ubl(self, template, data):
-        return dict2ubl(template, data)
+        extra_data = False
+        uom_records = self.env["uom.uom"].search([])
+        if uom_records:
+            (
+                MAPPING_UNITCODE_WAMAS_TO_UBL,
+                MAPPING_UNITCODE_UBL_TO_WAMAS,
+            ) = self._build_unitcode_mapping(uom_records)
+            if MAPPING_UNITCODE_WAMAS_TO_UBL and MAPPING_UNITCODE_UBL_TO_WAMAS:
+                extra_data[
+                    "MAPPING_UNITCODE_WAMAS_TO_UBL"
+                ] = MAPPING_UNITCODE_WAMAS_TO_UBL
+                extra_data[
+                    "MAPPING_UNITCODE_UBL_TO_WAMAS"
+                ] = MAPPING_UNITCODE_UBL_TO_WAMAS
+        return dict2ubl(template, data, extra_data=extra_data)
 
     @api.model
     def wamas2ubl(self, str_file, extra_data=False):
+        uom_records = self.env["uom.uom"].search([])
+        if uom_records:
+            (
+                MAPPING_UNITCODE_WAMAS_TO_UBL,
+                MAPPING_UNITCODE_UBL_TO_WAMAS,
+            ) = self._build_unitcode_mapping(uom_records)
+            if MAPPING_UNITCODE_WAMAS_TO_UBL and MAPPING_UNITCODE_UBL_TO_WAMAS:
+                extra_data[
+                    "MAPPING_UNITCODE_WAMAS_TO_UBL"
+                ] = MAPPING_UNITCODE_WAMAS_TO_UBL
+                extra_data[
+                    "MAPPING_UNITCODE_UBL_TO_WAMAS"
+                ] = MAPPING_UNITCODE_UBL_TO_WAMAS
         return wamas2ubl(str_file, extra_data=extra_data)
 
     @api.model
     def ubl2wamas(self, str_file, telegram_type):
-        return ubl2wamas(str_file, telegram_type)
+        extra_data = False
+        uom_records = self.env["uom.uom"].search([])
+        if uom_records:
+            (
+                MAPPING_UNITCODE_WAMAS_TO_UBL,
+                MAPPING_UNITCODE_UBL_TO_WAMAS,
+            ) = self._build_unitcode_mapping(uom_records)
+            if MAPPING_UNITCODE_WAMAS_TO_UBL and MAPPING_UNITCODE_UBL_TO_WAMAS:
+                extra_data[
+                    "MAPPING_UNITCODE_WAMAS_TO_UBL"
+                ] = MAPPING_UNITCODE_WAMAS_TO_UBL
+                extra_data[
+                    "MAPPING_UNITCODE_UBL_TO_WAMAS"
+                ] = MAPPING_UNITCODE_UBL_TO_WAMAS
+        return ubl2wamas(str_file, telegram_type, extra_data=extra_data)
 
     @api.model
     def dict2wamas(self, dict_input, telegram_type):
-        return dict2wamas(dict_input, telegram_type)
+        extra_data = False
+        uom_records = self.env["uom.uom"].search([])
+        if uom_records:
+            (
+                MAPPING_UNITCODE_WAMAS_TO_UBL,
+                MAPPING_UNITCODE_UBL_TO_WAMAS,
+            ) = self._build_unitcode_mapping(uom_records)
+            if MAPPING_UNITCODE_WAMAS_TO_UBL and MAPPING_UNITCODE_UBL_TO_WAMAS:
+                extra_data[
+                    "MAPPING_UNITCODE_WAMAS_TO_UBL"
+                ] = MAPPING_UNITCODE_WAMAS_TO_UBL
+                extra_data[
+                    "MAPPING_UNITCODE_UBL_TO_WAMAS"
+                ] = MAPPING_UNITCODE_UBL_TO_WAMAS
+        return dict2wamas(dict_input, telegram_type, extra_data=extra_data)
 
     @api.model
     def get_wamas_type(self, str_file):
@@ -69,3 +125,28 @@ class BaseWamasUbl(models.AbstractModel):
     @api.model
     def get_supported_telegram_w2w(self):
         return get_supported_telegram_w2w()
+
+    @api.model
+    def _build_unitcode_mapping(self, uom_records):
+        uom_records = uom_records.filtered(
+            lambda rec: rec.wamas_code and rec.unece_code
+        )
+        if not uom_records:
+            return None, None
+
+        MAPPING_UNITCODE_WAMAS_TO_UBL = {
+            "unitCode": MappingDict(
+                {
+                    "": False,  # undefined,
+                }
+            )
+        }
+        MAPPING_UNITCODE_UBL_TO_WAMAS = {"unitCode": MappingDict()}
+        for uom_record in uom_records:
+            MAPPING_UNITCODE_WAMAS_TO_UBL["unitCode"][
+                uom_record.wamas_code
+            ] = uom_record.unece_code
+            MAPPING_UNITCODE_UBL_TO_WAMAS["unitCode"][
+                uom_record.unece_code
+            ] = uom_record.wamas_code
+        return MAPPING_UNITCODE_WAMAS_TO_UBL, MAPPING_UNITCODE_UBL_TO_WAMAS
