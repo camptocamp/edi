@@ -235,7 +235,7 @@ grammar = OrderedDict(
             "type": "bool",
             "length": 1,
             "dp": False,
-            "dict_key": False,
+            "dict_key": "display_unit",
             "df_val": False,
             "df_func": False,
         },
