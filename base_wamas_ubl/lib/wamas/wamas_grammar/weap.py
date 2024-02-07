@@ -70,7 +70,7 @@ grammar = OrderedDict(
             "type": "str",
             "length": 20,
             "dp": False,
-            "ubl_path": "DespatchAdvice.cac:DespatchLine.%s.cac:OrderLineReference.cbc:LineID",
+            "ubl_path": "DespatchAdvice.cac:DespatchLine.%s.cbc:ID",
             "df_val": False,
             "df_func": False,
         },
