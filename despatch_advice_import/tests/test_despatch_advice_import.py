@@ -365,3 +365,26 @@ class TestDespatchAdviceImport(TransactionCase):
             lambda s: s.state == "assigned" and s.picking_id.backorder_id
         )
         self.assertEqual(sum(moves_backorder.mapped("product_qty")), 3)
+
+    def test_confirmed_qty_larger_reserved_qty(self):
+        """
+        confirmed qty > reserved qty
+        """
+        data = self._get_base_data()
+        confirmed_qty = self.line1.product_qty + 6
+        data["lines"] = [
+            self.order_line_to_data(self.line1, qty=confirmed_qty),
+            self.order_line_to_data(self.line2),
+            self.order_line_to_data(self.line3),
+            self.order_line_to_data(self.line4),
+        ]
+        self.DespatchAdviceImport.with_context(
+            allow_validate_over_qty=True
+        ).process_data(data)
+
+        self.assertTrue(self.purchase_order.picking_ids)
+        move_ids = self.line1.move_ids
+        self.assertEqual(len(move_ids), 1)
+        self.assertEqual(sum(move_ids.mapped("product_qty")), confirmed_qty)
+        assigned = move_ids.filtered(lambda s: s.state == "done")
+        self.assertEqual(assigned.product_qty, confirmed_qty)
