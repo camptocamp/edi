@@ -127,7 +127,7 @@ class EDIExchangeRecord(models.Model):
     @api.depends("model", "res_id")
     def _compute_related_name(self):
         for rec in self:
-            related_record = rec.record
+            related_record = rec.sudo().record
             rec.related_name = related_record.display_name if related_record else ""
 
     @api.depends("model", "type_id")
@@ -183,7 +183,7 @@ class EDIExchangeRecord(models.Model):
     @api.depends("res_id", "model")
     def _compute_related_record_exists(self):
         for rec in self:
-            rec.related_record_exists = bool(rec.record)
+            rec.related_record_exists = bool(rec.sudo().record)
 
     def needs_ack(self):
         return self.type_id.ack_type_id and not self.ack_exchange_id
@@ -237,7 +237,7 @@ class EDIExchangeRecord(models.Model):
         for rec in self:
             rec_name = rec.identifier
             if rec.res_id and rec.model:
-                rec_name = rec.record.display_name
+                rec_name = rec.sudo().record.display_name
             name = "[{}] {}".format(rec.type_id.name, rec_name)
             result.append((rec.id, name))
         return result
