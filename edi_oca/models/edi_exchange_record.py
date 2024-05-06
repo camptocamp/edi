@@ -46,7 +46,9 @@ class EDIExchangeRecord(models.Model):
         model_field="model",
         copy=False,
     )
-    related_record_exists = fields.Boolean(compute="_compute_related_record_exists", compute_sudo=True)
+    related_record_exists = fields.Boolean(
+        compute="_compute_related_record_exists", compute_sudo=True
+    )
     related_name = fields.Char(compute="_compute_related_name", compute_sudo=True)
     exchange_file = fields.Binary(attachment=True, copy=False)
     exchange_filename = fields.Char(
@@ -209,7 +211,15 @@ class EDIExchangeRecord(models.Model):
             return None
         if not self.model and self.parent_id:
             return self.parent_id.record
-        return self.env[self.model].browse(self.res_id).with_user(self._uid).filtered(lambda x: x.sudo().company_id in self.env.companies.ids).exists()
+        rec = self.env[self.model].browse(self.res_id).exists()
+        if (
+            rec
+            and "company_id" in rec
+            and rec.sudo().company_id.id not in self.env.companies.ids
+        ):
+            # Return empty recordset if company does not match
+            rec = rec[:0]
+        return rec
 
     def _set_file_content(
         self, output_string, encoding="utf-8", field_name="exchange_file"
