@@ -212,13 +212,11 @@ class EDIExchangeRecord(models.Model):
         if not self.model and self.parent_id:
             return self.parent_id.record
         rec = self.env[self.model].browse(self.res_id).exists()
-        if (
-            rec
-            and "company_id" in rec
-            and rec.sudo().company_id.id not in self.env.companies.ids
-        ):
-            # Return empty recordset if company does not match
-            rec = rec[:0]
+        if rec and "company_id" in rec:
+            rec_company = rec.sudo().company_id
+            if rec_company and rec_company not in self.env.companies:
+                # Return empty recordset if company does not match
+                rec = rec[:0]
         return rec
 
     def _set_file_content(
