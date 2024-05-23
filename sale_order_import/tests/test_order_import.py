@@ -87,6 +87,41 @@ class TestOrderImport(TestCommon):
                 parsed_order_up_no_price_unit, order, "order"
             )
 
+    def test_order_import_log_errored_line(self):
+        parsed_order = dict(
+            self.parsed_order,
+            partner={"email": "agrolait@yourcompany.example.com"},
+            lines=[
+                {
+                    "product": {"code": "errored"},  # No product exists with this code
+                    "qty": 3,
+                    "uom": {"unece_code": "C62"},
+                    "price_unit": 12.42,
+                },
+                {
+                    "product": {"code": "FURN_9999"},
+                    "qty": 1,
+                    "uom": {"unece_code": "C62"},
+                    "price_unit": 1.42,
+                },
+            ],
+        )
+        order = self.wiz_model.create_order(parsed_order, "pricelist")
+        self.assertEqual(order.client_order_ref, parsed_order["order_ref"])
+        self.assertEqual(len(order.order_line), 1)
+        self.assertEqual(
+            order.order_line.product_id.default_code,
+            parsed_order["lines"][1]["product"]["code"],
+        )
+        msg = (
+            "Errored lines on import:<br>"
+            + "{'product': {'code': 'errored'}, 'qty': 3, 'uom':"
+            + " {'unece_code': 'C62'}, 'price_unit': 12.42}"
+            + "</p><ul><li>Odoo couldn't find any product corresponding to the"
+            + " following information extracted from the business document"
+        )
+        self.assertTrue(order.message_ids.filtered(lambda m: msg in m.body))
+
     def test_order_import_default_so_vals(self):
         default = {"client_order_ref": "OVERRIDE"}
         order = self.wiz_model.with_context(

@@ -263,16 +263,30 @@ class SaleOrderImport(models.TransientModel):
             so_vals["partner_invoice_id"] = invoicing_partner.id
         if parsed_order.get("date"):
             so_vals["date_order"] = parsed_order["date"]
+
+        errored_line = []
         for line in parsed_order["lines"]:
-            # partner=False because we don't want to use product.supplierinfo
-            product = bdio._match_product(
-                line["product"], parsed_order["chatter_msg"], seller=False
-            )
-            uom = bdio._match_uom(line.get("uom"), parsed_order["chatter_msg"], product)
-            line_vals = self._prepare_create_order_line(
-                product, uom, so_vals, line, price_source
-            )
-            so_vals["order_line"].append((0, 0, line_vals))
+            try:
+                # partner=False because we don't want to use product.supplierinfo
+                product = bdio._match_product(
+                    line["product"], parsed_order["chatter_msg"], seller=False
+                )
+                uom = bdio._match_uom(
+                    line.get("uom"), parsed_order["chatter_msg"], product
+                )
+                line_vals = self._prepare_create_order_line(
+                    product, uom, so_vals, line, price_source
+                )
+                so_vals["order_line"].append((0, 0, line_vals))
+            except UserError as exc:
+                errored_line.append(str(line) + f"<ul><li>{exc.args[0]}</li></ul>")
+
+        # Push to the chatter all errored lines if any
+        if errored_line:
+            msg = _("Errored lines on import:<br>")
+            errored_line.insert(0, msg)
+            errored_line_str = "".join(errored_line)
+            parsed_order["chatter_msg"].append(errored_line_str)
 
         defaults = self.env.context.get("sale_order_import__default_vals", {}).get(
             "order", {}
