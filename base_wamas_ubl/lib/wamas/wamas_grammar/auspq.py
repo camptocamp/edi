@@ -178,5 +178,13 @@ grammar = OrderedDict(
             "df_val": False,
             "df_func": False,
         },
+        "AUSPQ0051": {
+            "type": "bool",
+            "length": 1,
+            "dp": False,
+            "dict_key": False,
+            "df_val": False,
+            "df_func": False,
+        },
     }
 )
