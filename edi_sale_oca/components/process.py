@@ -28,7 +28,6 @@ class EDIExchangeSOInput(Component):
         else:
             order = self._handle_create_order(res["res_id"])
             return self.msg_order_created % order.name
-        raise UserError(self.msg_generic_error)
 
     @property
     def msg_order_existing_error(self):
