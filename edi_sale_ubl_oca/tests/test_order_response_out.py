@@ -4,12 +4,12 @@
 
 from freezegun import freeze_time
 
-from odoo.addons.edi_sale_oca.tests.common import OrderMixin
+from odoo.addons.component.tests.common import ComponentMixin
 
-from .common import XMLBaseTestCase, get_xml_handler
+from .common import OrderMixin, XMLBaseTestCase, get_xml_handler
 
 
-class TestOrderResponseOutbound(XMLBaseTestCase, OrderMixin):
+class TestOrderResponseOutbound(XMLBaseTestCase, OrderMixin, ComponentMixin):
 
     maxDiff = None
 
@@ -18,6 +18,7 @@ class TestOrderResponseOutbound(XMLBaseTestCase, OrderMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.setUpComponent()
         cls._setup_order()
         cls.exc_type_in = cls.env.ref("edi_sale_ubl_oca.demo_edi_exc_type_order_in")
         cls.exc_type_out = cls.env.ref(
@@ -35,6 +36,11 @@ class TestOrderResponseOutbound(XMLBaseTestCase, OrderMixin):
         cls.sale.origin_exchange_record_id = cls.record
         cls.sale.order_line.origin_exchange_record_id = cls.record
         cls.sale._edi_update_state()
+
+    def setUp(self):
+        super().setUp()
+        ComponentMixin.setUp(self)
+        self.sale.action_confirm()
 
     @classmethod
     def _get_backend(cls):
@@ -76,4 +82,4 @@ class TestOrderResponseOutbound(XMLBaseTestCase, OrderMixin):
         self.assertEqual(err, None, err)
         data = handler.parse_xml(file_content)
         # TODO: test all main data
-        self.assertEqual(data["cbc:OrderResponseCode"], "AP")
+        self.assertEqual(data["cbc:OrderResponseCode"], "CA")
