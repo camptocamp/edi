@@ -133,8 +133,10 @@ def _set_string_date(val, length, dp, **kwargs):
 
 
 def _set_string_datetime(val, length, dp, **kwargs):
-    res = isinstance(val, str) and val != "" and parse(val) or val
-
+    try:
+        res = isinstance(val, str) and val != "" and parse(val) or val
+    except:
+        import pdb; pdb.set_trace()
     if isinstance(res, (date, datetime)):
         if kwargs.get("do_convert_tz", False):
             res = convert_tz(res, "UTC", DEFAULT_TIMEZONE)
@@ -299,9 +301,9 @@ def generate_wamas_dict(dict_item, grammar, **kwargs):  # noqa: C901
             if isinstance(ubl_path, list):
                 lst_val = []
                 for _item in ubl_path:
-                    lst_val.append(dict_item.get(_item, ""))
+                    lst_val.append(dict_item.get(_item) or "")
                 if lst_val:
-                    val = " ".join(lst_val)
+                    val = " ".join(lst_val).strip()
             elif isinstance(ubl_path, dict):
                 for _key in ubl_path:
                     if dict_item.get(_key, False):
