@@ -140,6 +140,14 @@
 		<cbc:ID><t t-raw="line.IvAusp_HostPosNr" /></cbc:ID>
 		<t t-raw="line.Mngs_Mng or line.IvAusp_LiefMngsWamas_Mng" />
 		<cbc:DeliveredQuantity
+            t-if="line.Mngs_Mng or line.Mngs_Mng == 0"
+            t-att-unitCode="line.IvArt_Bestand_Einheit"
+            unitCodeListAgencyName="WAMAS"
+        >
+		<t t-raw="line.Mngs_Mng" />
+		</cbc:DeliveredQuantity>
+		<cbc:DeliveredQuantity
+            t-if="line.IvAusp_LiefMngsWamas_Mng or line.IvAusp_LiefMngsWamas_Mng == 0"
             t-att-unitCode="line.IvArt_Bestand_Einheit"
             unitCodeListAgencyName="WAMAS"
         >
