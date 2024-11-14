@@ -27,6 +27,19 @@ class SaleOrder(models.Model):
         states={"draft": [("readonly", False)]},
     )
 
+    # STATES
+    # ('draft', 'Quotation'),
+    # ('sent', 'Quotation Sent'),
+    # ('sale', 'Sales Order'),
+    # ('done', 'Locked'),
+    # ('cancel', 'Cancelled'),
+
+    def write(self, vals):
+        if "state" in vals:
+            for rec in self:
+                rec._event(f"on_edi_sale_order_state_{vals['state']}").notify(rec)
+        return super().write(vals)
+
     # edi_record_metadata api
     def _edi_get_metadata_to_store(self, orig_vals):
         data = super()._edi_get_metadata_to_store(orig_vals)

@@ -27,5 +27,6 @@
     "demo": [
         "demo/edi_backend.xml",
         "demo/edi_exchange_type.xml",
+        "demo/edi_configuration.xml",
     ],
 }
