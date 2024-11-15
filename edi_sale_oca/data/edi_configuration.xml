@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+  <record id="edi_conf_trigger_sale_order_state_sale" model="edi.configuration.trigger">
+    <field name="name">On SO confirmed</field>
+    <field name="code">on_edi_sale_order_state_sale</field>
+    <field name="description">Trigger when a sale order is confirmed</field>
+    <field name="model_id" ref="sale.model_sale_order" />
+  </record>
+  <record
+        id="edi_conf_trigger_sale_order_state_quotation_sent"
+        model="edi.configuration.trigger"
+    >
+    <field name="name">On SO Quotation Sent</field>
+    <field name="code">on_edi_sale_order_state_quotation_sent</field>
+    <field name="description">Trigger when a sale order quotataion is sent</field>
+    <field name="model_id" ref="sale.model_sale_order" />
+  </record>
+  <record
+        id="edi_conf_trigger_sale_order_state_cancel"
+        model="edi.configuration.trigger"
+    >
+    <field name="name">On SO Cancel</field>
+    <field name="code">on_edi_sale_order_state_cancel</field>
+    <field name="description">Trigger when a sale order is cancelled</field>
+    <field name="model_id" ref="sale.model_sale_order" />
+  </record>
+  <record id="edi_conf_trigger_sale_order_state_done" model="edi.configuration.trigger">
+    <field name="name">On SO Done</field>
+    <field name="code">on_edi_sale_order_state_done</field>
+    <field name="description">Trigger when a sale order is done</field>
+    <field name="model_id" ref="sale.model_sale_order" />
+  </record>
+  <record
+        id="edi_conf_trigger_sale_order_state_unlock"
+        model="edi.configuration.trigger"
+    >
+    <field name="name">On SO Unlock</field>
+    <field name="code">on_edi_sale_order_state_unlock</field>
+    <field name="description">Trigger when a sale order is unlocked</field>
+    <field name="model_id" ref="sale.model_sale_order" />
+  </record>
+  <record
+        id="edi_conf_trigger_sale_order_state_draft"
+        model="edi.configuration.trigger"
+    >
+    <field name="name">On SO reset to draft</field>
+    <field name="code">on_edi_sale_order_state_draft</field>
+    <field name="description">Trigger when a sale order is reset to draft</field>
+    <field name="model_id" ref="sale.model_sale_order" />
+  </record>
+</odoo>
