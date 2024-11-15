@@ -19,6 +19,7 @@
     ],
     "data": [
         "data/job_function.xml",
+        "data/edi_configuration.xml",
         "views/res_partner.xml",
         "views/sale_order.xml",
         "views/edi_exchange_record.xml",
