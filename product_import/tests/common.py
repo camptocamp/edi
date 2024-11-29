@@ -11,7 +11,8 @@ class TestCommon(SavepointCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
-        cls.wiz_model = cls.env["product.import"]
+        # Execute directly, no job
+        cls.wiz_model = cls.env["product.import"].with_context(queue_job__no_delay=True)
         cls.supplier = cls.env["res.partner"].create({"name": "Catalogue Vendor"})
 
     def _mock(self, method_name):
