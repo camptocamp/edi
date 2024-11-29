@@ -12,17 +12,13 @@
     "author": "Camptocamp,Odoo Community Association (OCA)",
     "website": "https://github.com/OCA/edi",
     "depends": [
-        "edi_sale_oca",
-        "edi_state_oca",
+        "sale_order_import_ubl",
+        "edi_sale_input_oca",
+        "edi_sale_ubl_oca",
         "edi_ubl_oca",
-        # This could be made optional
-        # but the delivery part would need another source of data
-        "sale_stock",
+        "edi_xml_oca",
     ],
-    "data": [
-        "data/edi_state.xml",
-        "views/sale_order.xml",
-    ],
+    "data": [],
     "demo": [
         "demo/edi_exchange_type.xml",
     ],
