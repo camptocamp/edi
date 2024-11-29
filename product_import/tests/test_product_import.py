@@ -96,8 +96,11 @@ class TestProductImport(TestCommon):
 
     def test_product_import(self):
         # product.product
-        products = self.wiz_model._create_products(
-            self.parsed_catalog, seller=self.supplier
+        self.wiz_model._import_products(self.parsed_catalog, seller=self.supplier)
+        products = (
+            self.env["product.product"]
+            .with_context(active_test=False)
+            .search([], order="id")[-3:]
         )
         self.assertEqual(len(products), 3)
         for product, parsed in zip(products, PARSED_CATALOG["products"]):
