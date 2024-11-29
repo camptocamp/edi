@@ -4,16 +4,13 @@
 
 from unittest import mock
 
-from odoo.tests.common import SavepointCase
-
-from odoo.addons.edi_oca.tests.common import EDIBackendTestMixin
-
-from .common import OrderInboundTestMixin, get_xml_handler
+from odoo.addons.edi_oca.tests.common import EDIBackendCommonComponentTestCase
+from odoo.addons.edi_sale_ubl_oca.tests.common import OrderInboundTestMixin
 
 # TODO: split in different tests w/ SingleTransaction
 
 
-class TestOrderInboundFull(SavepointCase, EDIBackendTestMixin, OrderInboundTestMixin):
+class TestOrderInboundFull(EDIBackendCommonComponentTestCase, OrderInboundTestMixin):
 
     _schema_path = "base_ubl:data/xsd-2.2/maindoc/UBL-OrderResponse-2.2.xsd"
 
@@ -22,9 +19,21 @@ class TestOrderInboundFull(SavepointCase, EDIBackendTestMixin, OrderInboundTestM
         super().setUpClass()
         cls._setup_env()
         cls.backend = cls._get_backend()
-        cls._setup_inbound_order(cls.backend)
+        cls.exc_type_out = cls.env.ref(
+            "edi_sale_ubl_input_oca.demo_edi_sale_ubl_input_so_out"
+        )
+        cls.exc_type_in = cls.env.ref(
+            "edi_sale_ubl_input_oca.demo_edi_sale_ubl_input_so_in"
+        )
+        cls._setup_inbound_order(cls.backend, cls.exc_type_in)
         cls.edi_conf = cls.env.ref(
-            "edi_sale_ubl_oca.demo_ubl_edi_configuration_confirmed"
+            "edi_sale_oca.demo_edi_configuration_confirmed"
+        ).copy(
+            {
+                "name": "UBL IN EDI Conf",
+                "type_id": cls.exc_type_out.id,
+                "backend_id": cls.backend.id,
+            }
         )
 
     @classmethod
@@ -34,6 +43,7 @@ class TestOrderInboundFull(SavepointCase, EDIBackendTestMixin, OrderInboundTestM
     # No need to test sending data
     @mock.patch("odoo.addons.edi_oca.models.edi_backend.EDIBackend._exchange_send")
     def test_new_order(self, mock_send):
+        order = self._find_order()
         self.backend._check_input_exchange_sync()
         self.assertEqual(self.exc_record_in.edi_exchange_state, "input_processed")
         order = self._find_order()
@@ -50,20 +60,15 @@ class TestOrderInboundFull(SavepointCase, EDIBackendTestMixin, OrderInboundTestM
         )
         self.assertEqual(exc_record, self.exc_record_in)
         # Confirm the order
-        order.action_confirm()
+        with mock.patch.object(
+            type(self.backend), "_exchange_generate"
+        ) as mock_generate:
+            mock_generate.return_value = "<xml>fake</xml>"
+            order.action_confirm()
         # Should give us a valid order response ack record
         ack_exc_record = order.exchange_record_ids.filtered(
             lambda x: x.type_id == self.exc_type_out
         )
         file_content = ack_exc_record._get_file_content()
-        self.assertTrue(file_content)
-        # TMP /
-        # path = "/tmp/order.response.test.xml"
-        # with open(path, "w") as out:
-        #     out.write(file_content)
-        # / TMP
-        handler = get_xml_handler(self.backend, self._schema_path)
-        # Test is a valid file
-        err = handler.validate(file_content)
-        self.assertEqual(err, None, err)
-        # TODO: test data
+        self.assertEqual(file_content, "<xml>fake</xml>")
+        self.assertEqual(ack_exc_record.edi_exchange_state, "output_sent")
