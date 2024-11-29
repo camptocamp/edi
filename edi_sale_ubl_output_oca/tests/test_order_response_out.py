@@ -5,9 +5,8 @@
 from freezegun import freeze_time
 
 from odoo.addons.edi_sale_oca.tests.common import OrderMixin
+from odoo.addons.edi_sale_ubl_oca.tests.common import get_xml_handler
 from odoo.addons.edi_xml_oca.tests.common import XMLComponentTestCase
-
-from .common import get_xml_handler
 
 
 class TestOrderResponseOutbound(XMLComponentTestCase, OrderMixin):
@@ -21,12 +20,14 @@ class TestOrderResponseOutbound(XMLComponentTestCase, OrderMixin):
         super().setUpClass()
         cls.backend = cls._get_backend()
         cls.order = cls._setup_order()
-        cls.exc_type_in = cls.env.ref("edi_sale_ubl_oca.demo_edi_exc_type_order_in")
         cls.exc_type_out = cls.env.ref(
-            "edi_sale_ubl_oca.demo_edi_exc_type_order_response_out"
+            "edi_sale_ubl_output_oca.demo_edi_sale_ubl_output_so_out"
+        )
+        cls.exc_type_in = cls.env.ref(
+            "edi_sale_ubl_output_oca.demo_edi_sale_ubl_output_so_in"
         )
         cls.exc_tmpl = cls.env.ref(
-            "edi_sale_ubl_oca.demo_edi_exc_template_order_response_out"
+            "edi_sale_ubl_output_oca.demo_edi_exc_template_order_response_out"
         )
         vals = {
             "model": cls.order._name,
@@ -47,7 +48,7 @@ class TestOrderResponseOutbound(XMLComponentTestCase, OrderMixin):
         self.assertEqual(template, self.exc_tmpl)
         self.assertEqual(
             template.template_id.key,
-            "edi_sale_ubl_oca.qwb_tmpl_ubl_order_response_out",
+            "edi_sale_ubl_output_oca.qwb_tmpl_ubl_order_response_out",
         )
 
     def test_render_values(self):

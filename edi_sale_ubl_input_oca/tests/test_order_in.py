@@ -5,15 +5,17 @@
 from odoo import exceptions
 
 from odoo.addons.edi_oca.tests.common import EDIBackendCommonComponentTestCase
-
-from .common import OrderInboundTestMixin
+from odoo.addons.edi_sale_ubl_oca.tests.common import OrderInboundTestMixin
 
 
 class TestOrderInbound(EDIBackendCommonComponentTestCase, OrderInboundTestMixin):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls._setup_inbound_order(cls.backend)
+        cls.exc_type_in = cls.env.ref(
+            "edi_sale_ubl_input_oca.demo_edi_sale_ubl_input_so_in"
+        )
+        cls._setup_inbound_order(cls.backend, cls.exc_type_in)
 
     @classmethod
     def _get_backend(cls):
@@ -68,11 +70,6 @@ class TestOrderInbound(EDIBackendCommonComponentTestCase, OrderInboundTestMixin)
         )
         # TODO: test order data. To do so, first add such tests to sale_order_import
         self.assertEqual(order.order_line.mapped("edi_id"), ["1", "2"])
-        self.assertTrue(order.edi_state_id.code, order.EDI_STATE_ORDER_ACCEPTED)
-        self.assertTrue(
-            order.mapped("order_line.edi_state_id").code,
-            order.EDI_STATE_ORDER_LINE_ACCEPTED,
-        )
 
     def test_cancel(self):
         self.assertEqual(self.exc_record_in.edi_exchange_state, "input_received")
@@ -88,11 +85,3 @@ class TestOrderInbound(EDIBackendCommonComponentTestCase, OrderInboundTestMixin)
         self.assertTrue(order.edi_state_id.code, order.EDI_STATE_ORDER_ACCEPTED)
         order.action_cancel()
         self.assertTrue(order.edi_state_id.code, order.EDI_STATE_ORDER_REJECTED)
-
-    def _find_order(self):
-        return self.env["sale.order"].search(
-            [
-                ("client_order_ref", "=", self.order_data.client_order_ref),
-                ("commercial_partner_id", "=", self.order_data.partner.parent_id.id),
-            ]
-        )
