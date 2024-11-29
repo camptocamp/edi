@@ -197,14 +197,15 @@ class ProductImport(models.TransientModel):
         return product_vals
 
     @api.model
-    def create_product(self, parsed_product, chatter_msg, seller=None):
+    def create_update_product(self, parsed_product, chatter_msg, seller_id):
+        seller = self.env["res.partner"].browse(seller_id)
         product_vals = self._prepare_product(parsed_product, chatter_msg, seller=seller)
         if not product_vals:
             return False
         product = product_vals.pop("recordset", None)
         if product:
             product.write(product_vals)
-            logger.info("Product %d updated", product.id)
+            logger.debug("Product %s updated", product.default_code)
         else:
             product_active = product_vals.pop("active")
             product = self.env["product.product"].create(product_vals)
@@ -213,23 +214,29 @@ class ProductImport(models.TransientModel):
                 # all characteristics into product.template
                 product.flush()
                 product.action_archive()
-            logger.info("Product %d created", product.id)
+            logger.debug("Product %s created", product.default_code)
         return product
 
     @api.model
-    def _create_products(self, catalogue, seller, filename=None):
-        products = self.env["product.product"].browse()
-        for product in catalogue.get("products"):
-            record = self.create_product(
-                product,
-                catalogue["chatter_msg"],
-                seller=seller,
-            )
-            if record:
-                products |= record
+    def _create_update_product(self, parsed_product, seller_id):
+        """Create / Update a product.
+
+        This method is called from a queue job.
+        """
+        messgs = []
+        product = self.create_update_product(parsed_product, messgs, seller_id)
+        log_msg = f"Product created/updated {product.id}\n" + "\n".join(messgs)
+        return log_msg
+
+    @api.model
+    def _import_products(self, catalogue, seller, filename=None):
+        for product_vals in catalogue["products"]:
+            # One job per product
+            self.with_delay()._create_update_product(product_vals, seller.id)
         self._bdimport.post_create_or_update(catalogue, seller, doc_filename=filename)
-        logger.info("Products updated for vendor %d", seller.id)
-        return products
+        logger.info(
+            "Update for vendor %s: %d products", seller.name, len(catalogue["products"])
+        )
 
     def import_button(self):
         self.ensure_one()
@@ -239,7 +246,7 @@ class ProductImport(models.TransientModel):
             raise UserError(_("This catalogue doesn't have any product!"))
         company_id = self._get_company_id(catalogue)
         seller = self._get_seller(catalogue)
-        self.with_context(product_company_id=company_id)._create_products(
+        self.with_context(product_company_id=company_id)._import_products(
             catalogue, seller, filename=self.product_filename
         )
         return {"type": "ir.actions.act_window_close"}
