@@ -13,7 +13,10 @@ class TestCommon(SavepointCase):
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
         # Execute directly, no job
         cls.wiz_model = cls.env["product.import"].with_context(queue_job__no_delay=True)
-        cls.supplier = cls.env["res.partner"].create({"name": "Catalogue Vendor"})
+        cls.company = cls.env["res.company"].create({"name": "Customer ABC"})
+        cls.supplier = cls.env["res.partner"].create(
+            {"name": "Catalogue Vendor", "company_id": cls.company.id}
+        )
 
     def _mock(self, method_name):
         return mock.patch.object(type(self.wiz_model), method_name)
