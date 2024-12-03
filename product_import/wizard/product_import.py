@@ -251,8 +251,8 @@ class ProductImport(models.TransientModel):
         if not catalogue.get("products"):
             raise UserError(_("This catalogue doesn't have any product!"))
         company_id = self._get_company_id(catalogue)
-        seller = self._get_seller(catalogue)
-        wiz = self.with_context(product_company_id=company_id)
+        wiz = self.with_company(company_id).with_context(product_company_id=company_id)
+        seller = wiz._get_seller(catalogue)
         # Create products asynchronously
         for product_vals in catalogue["products"]:
             # One job per product
