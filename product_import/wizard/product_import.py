@@ -4,11 +4,14 @@
 import logging
 from base64 import b64decode, b64encode
 from datetime import date, timedelta
+from itertools import zip_longest
 
 from lxml import etree
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+
+CHUNK_SIZE = 40
 
 logger = logging.getLogger(__name__)
 
@@ -197,17 +200,33 @@ class ProductImport(models.TransientModel):
         return product_vals
 
     @api.model
-    def _create_update_product(self, parsed_product, seller_id):
+    def _create_update_products(self, products, seller_id):
+        """Create / Update a product.
+
+        This method is called from a queue job.
+        """
+
+        seller = self.env["res.partner"].browse(seller_id)
+
+        log_msgs = []
+        for parsed_product in products:
+            product_vals = self._prepare_product(
+                parsed_product, log_msgs, seller=seller
+            )
+            if product_vals:
+                msg = self._create_update_product(product_vals)
+                log_msgs.append(msg)
+
+        return "\n".join(log_msgs)
+
+    @api.model
+    def _create_update_product(self, product_vals):
         """Create / Update a product.
 
         This method is called from a queue job.
         """
         chatter_msg = []
 
-        seller = self.env["res.partner"].browse(seller_id)
-        product_vals = self._prepare_product(parsed_product, chatter_msg, seller=seller)
-        if not product_vals:
-            return False
         product = product_vals.pop("recordset", None)
         if product:
             product.write(product_vals)
@@ -222,12 +241,16 @@ class ProductImport(models.TransientModel):
                 product.action_archive()
             logger.debug("Product %s created", product.default_code)
 
+        # Archive product template, if product is archived
+        if product.active != product.product_tmpl_id.active:
+            product.product_tmpl_id.toggle_active()
         log_msg = f"Product created/updated {product.id}\n" + "\n".join(chatter_msg)
         return log_msg
 
-    def import_button(self):
+    def import_button(self, chunk_size=CHUNK_SIZE):
         self.ensure_one()
         file_content = b64decode(self.product_file)
+        # 1st step: Parse the (UBL) document --> get a "catalogue" dictionary
         catalogue = self.parse_product_catalogue(file_content, self.product_filename)
         if not catalogue.get("products"):
             raise UserError(_("This catalogue doesn't have any product!"))
@@ -235,9 +258,13 @@ class ProductImport(models.TransientModel):
         seller = self._get_seller(catalogue)
         wiz = self.with_context(product_company_id=company_id)
         # Create products asynchronously
-        for product_vals in catalogue["products"]:
-            # One job per product
-            wiz.with_delay()._create_update_product(product_vals, seller.id)
+        iterators = [iter(catalogue["products"])] * chunk_size
+        for products in zip_longest(*iterators):
+            if products[-1] is None:
+                products = [product for product in products if product]
+            # One job for x products (chunk of 40)
+            # 2nd step: Prepare values and create the "product.product" records in Odoo
+            wiz.with_delay()._create_update_products(products, seller.id)
         # Save imported file as attachment
         self._bdimport.post_create_or_update(
             catalogue, seller, doc_filename=self.product_filename
