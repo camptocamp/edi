@@ -166,9 +166,12 @@ class ProductImport(models.TransientModel):
             .search([("barcode", "=", parsed_product["barcode"])], limit=1)
         )
         uom = self._bdimport._match_uom(parsed_product["uom"], chatter_msg)
-        currency = self._bdimport._match_currency(
-            parsed_product["currency"], chatter_msg
-        )
+        if parsed_product["currency"]:
+            currency = self._bdimport._match_currency(
+                parsed_product["currency"], chatter_msg
+            )
+        else:
+            currency = import_company_id.currency_id
 
         product_vals = {
             "active": parsed_product.get("active", True),
