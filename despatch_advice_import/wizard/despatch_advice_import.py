@@ -1,4 +1,5 @@
 # Copyright 2020 ACSONE SA/NV
+# Copyright 2025 Jacques-Etienne Baudoux (BCIM) <je@bcim.be>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import logging
@@ -202,11 +203,11 @@ class DespatchAdviceImport(models.TransientModel):
         self._process_picking_done(lines[0].move_ids[0])
 
     def _process_picking_done(self, move):
-        if all([line.quantity_done != 0 for line in move.picking_id.move_ids]):
-            move.picking_id.button_validate()
-        else:
-            picking = move.picking_id
-            picking.with_context(skip_backorder=True).button_validate()
+        picking = move.picking_id
+        if all(line.state == "cancel" for line in picking.move_ids):
+            return True
+        # skip backorder wizard
+        picking.with_context(skip_backorder=True).button_validate()
 
     def _process_rejected(self, stock_moves, parsed_order_document):
         parsed_order_document["chatter_msg"] = parsed_order_document.get(
@@ -216,7 +217,9 @@ class DespatchAdviceImport(models.TransientModel):
             _("Delivery cancelled by the supplier.")
         )
 
-        stock_moves._action_cancel()
+        # stock_picking_restrict_cancel_printed module checks we are
+        # canceling the backorder to allow move cancellation
+        stock_moves.with_context(cancel_backorder=True)._action_cancel()
 
     def _process_accepted(self, stock_moves, parsed_order_document, forced_qty=False):
         parsed_order_document["chatter_msg"] = (
@@ -296,7 +299,9 @@ class DespatchAdviceImport(models.TransientModel):
         # cancel moves to cancel
         if move_ids_to_cancel:
             moves_to_cancel = self.env["stock.move"].browse(move_ids_to_cancel)
-            moves_to_cancel._action_cancel()
+            # stock_picking_restrict_cancel_printed module checks we are
+            # canceling the backorder to allow move cancellation
+            moves_to_cancel.with_context(cancel_backorder=True)._action_cancel()
         # move backorder moves to a backorder
         if move_ids_to_backorder:
             moves_to_backorder = self.env["stock.move"].browse(move_ids_to_backorder)
