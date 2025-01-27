@@ -145,6 +145,10 @@ class ProductImport(models.TransientModel):
                     and s_info.delay == seller_info["delay"]
                 ):
                     seller_id = s_info.id
+                elif s_info.date_start == today:
+                    # Overwrite if created the same day
+                    seller_id = s_info.id
+                    result.append((1, s_info.id, seller_info))
                 else:
                     result.append((1, s_info.id, {"date_end": yesterday}))
         if not seller_id:
@@ -266,6 +270,7 @@ class ProductImport(models.TransientModel):
         # Archive product template, if product is archived
         if product.active != product.product_tmpl_id.active:
             product.product_tmpl_id.toggle_active()
+
         log_msg = f"Product created/updated {product.id}\n" + "\n".join(chatter_msg)
         return log_msg
 
