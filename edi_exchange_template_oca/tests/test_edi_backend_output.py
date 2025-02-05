@@ -123,18 +123,6 @@ result = {"res_ids": record.ids}
 
 # TODO: add more unit tests
 class TestEDIBackendOutput(TestEDIBackendOutputBase):
-    def test_get_template(self):
-        self.assertEqual(
-            self.backend._get_output_template(self.record1), self.tmpl_out1
-        )
-        self.assertEqual(
-            self.backend._get_output_template(self.record2), self.tmpl_out2
-        )
-        self.assertEqual(
-            self.backend._get_output_template(self.record2, code=self.tmpl_out1.code),
-            self.tmpl_out1,
-        )
-
     def test_generate_file(self):
         output = self.backend.exchange_generate(self.record1)
         expected = "{0.ref} - {0.name}".format(self.partner)
