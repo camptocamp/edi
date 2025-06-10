@@ -20,13 +20,13 @@ class SaleOrderImport(models.TransientModel):
                 return "order"
             else:
                 return self.parse_ubl_sale_order(xml_root)
-        elif xml_root.tag == "{}{}-2}}{}".format(start_tag, rfq, rfq):
+        elif xml_root.tag == f"{start_tag}{rfq}-2}}{rfq}":
             if detect_doc_type:
                 return "rfq"
             else:
                 return self.parse_ubl_sale_order(xml_root)
         else:
-            return super(SaleOrderImport, self).parse_xml_order(xml_root)
+            return super().parse_xml_order(xml_root)
 
     @api.model
     def parse_ubl_sale_order_line(self, line, ns):
@@ -95,7 +95,7 @@ class SaleOrderImport(models.TransientModel):
         currency_code = False
         for cur_node_name in ("DocumentCurrencyCode", "PricingCurrencyCode"):
             currency_xpath = xml_root.xpath(
-                "/{}/cbc:{}".format(root_name, cur_node_name), namespaces=ns
+                f"/{root_name}/cbc:{cur_node_name}", namespaces=ns
             )
             if currency_xpath:
                 currency_code = currency_xpath[0].text
@@ -144,9 +144,7 @@ class SaleOrderImport(models.TransientModel):
         if invoicing_xpath:
             invoicing_dict = self.ubl_parse_customer_party(invoicing_xpath[0], ns)
         note_xpath = xml_root.xpath("/%s/cbc:Note" % root_name, namespaces=ns)
-        lines_xpath = xml_root.xpath(
-            "/{}/{}".format(root_name, line_name), namespaces=ns
-        )
+        lines_xpath = xml_root.xpath(f"/{root_name}/{line_name}", namespaces=ns)
         res_lines = []
         for line in lines_xpath:
             res_lines.append(self.parse_ubl_sale_order_line(line, ns))
