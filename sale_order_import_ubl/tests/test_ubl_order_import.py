@@ -21,6 +21,7 @@ class TestUblOrderImport(TransactionCase):
             xml_file = expected._get_content()
             wiz = self.env["sale.order.import"].create(
                 {
+                    "import_type": "xml",
                     "order_file": base64.b64encode(xml_file),
                     "order_filename": filename,
                 }

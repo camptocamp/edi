@@ -4,15 +4,27 @@
 from lxml import etree
 
 from odoo import api, models
+from odoo.exceptions import UserError
 from odoo.tools import float_is_zero
 
 
 class SaleOrderImport(models.TransientModel):
     _name = "sale.order.import"
-    _inherit = ["sale.order.import", "base.ubl"]
+    _inherit = ["sale.order.import"]
+
+    @property
+    def base_ubl(self):
+        return self.env["base.ubl"]
 
     @api.model
-    def parse_xml_order(self, xml_root, detect_doc_type=False):
+    def parse_xml_order(self, data, detect_doc_type=False):
+        if not self.env.context.get("xml_root", False):
+            xml_root, error_msg = self._parse_xml(data)
+        else:
+            xml_root = data
+            error_msg = None
+        if (xml_root is None or not len(xml_root)) and error_msg:
+            raise UserError(error_msg)
         start_tag = "{urn:oasis:names:specification:ubl:schema:xsd:"
         rfq = "RequestForQuotation"
         if xml_root.tag == start_tag + "Order-2}Order":
@@ -25,8 +37,7 @@ class SaleOrderImport(models.TransientModel):
                 return "rfq"
             else:
                 return self.parse_ubl_sale_order(xml_root)
-        else:
-            return super().parse_xml_order(xml_root)
+        return super().parse_xml_order(xml_root)
 
     @api.model
     def parse_ubl_sale_order_line(self, line, ns):
@@ -48,7 +59,7 @@ class SaleOrderImport(models.TransientModel):
                 price_unit = float(price_xpath[0].text)
         line_ref = line_item.xpath("cbc:ID", namespaces=ns)[0]
         res_line = {
-            "product": self.ubl_parse_product(line_item, ns),
+            "product": self.base_ubl.ubl_parse_product(line_item, ns),
             "qty": qty,
             "uom": {"unece_code": qty_xpath[0].attrib.get("unitCode")},
             "price_unit": price_unit,
@@ -87,11 +98,13 @@ class SaleOrderImport(models.TransientModel):
         xml_string = etree.tostring(
             xml_root, pretty_print=True, encoding="UTF-8", xml_declaration=True
         )
-        self._ubl_check_xml_schema(
-            xml_string, document, version=self._ubl_get_version(xml_root, root_name, ns)
+        self.base_ubl._ubl_check_xml_schema(
+            xml_string,
+            document,
+            version=self.base_ubl._ubl_get_version(xml_root, root_name, ns),
         )
         # Parse content
-        date_xpath = xml_root.xpath("/%s/cbc:IssueDate" % root_name, namespaces=ns)
+        date_xpath = xml_root.xpath(f"/{root_name}/cbc:IssueDate", namespaces=ns)
         currency_code = False
         for cur_node_name in ("DocumentCurrencyCode", "PricingCurrencyCode"):
             currency_xpath = xml_root.xpath(
@@ -104,46 +117,50 @@ class SaleOrderImport(models.TransientModel):
             currency_xpath = xml_root.xpath("//cbc:LineExtensionAmount", namespaces=ns)
             if currency_xpath:
                 currency_code = currency_xpath[0].attrib.get("currencyID")
-        order_ref_xpath = xml_root.xpath("/%s/cbc:ID" % root_name, namespaces=ns)
+        order_ref_xpath = xml_root.xpath(f"/{root_name}/cbc:ID", namespaces=ns)
         customer_xpath = xml_root.xpath(
-            "/%s/cac:BuyerCustomerParty" % root_name, namespaces=ns
+            f"/{root_name}/cac:BuyerCustomerParty", namespaces=ns
         )
         if not customer_xpath:
             customer_xpath = xml_root.xpath(
-                "/%s/cac:OriginatorCustomerParty" % root_name, namespaces=ns
+                f"/{root_name}/cac:OriginatorCustomerParty", namespaces=ns
             )
-        customer_dict = self.ubl_parse_customer_party(customer_xpath[0], ns)
+        customer_dict = self.base_ubl.ubl_parse_customer_party(customer_xpath[0], ns)
         supplier_xpath_party = xml_root.xpath(
-            "/%s/cac:SellerSupplierParty/cac:Party" % root_name, namespaces=ns
+            f"/{root_name}/cac:SellerSupplierParty/cac:Party", namespaces=ns
         )
-        company_dict_full = self.ubl_parse_party(supplier_xpath_party[0], ns)
+        company_dict_full = self.base_ubl.ubl_parse_party(supplier_xpath_party[0], ns)
         company_dict = {}
         # We only take the "official references" for company_dict
         if company_dict_full.get("vat"):
             company_dict = {"vat": company_dict_full["vat"]}
-        delivery_xpath = xml_root.xpath("/%s/cac:Delivery" % root_name, namespaces=ns)
+        delivery_xpath = xml_root.xpath(f"/{root_name}/cac:Delivery", namespaces=ns)
         shipping_dict = {}
         delivery_dict = {}
         if delivery_xpath:
-            shipping_dict = self.ubl_parse_delivery(delivery_xpath[0], ns)
-            delivery_dict = self.ubl_parse_delivery_details(delivery_xpath[0], ns)
+            shipping_dict = self.base_ubl.ubl_parse_delivery(delivery_xpath[0], ns)
+            delivery_dict = self.base_ubl.ubl_parse_delivery_details(
+                delivery_xpath[0], ns
+            )
         # In the demo UBL 2.1 file, they use 'IMCOTERM'... but I guess
         # it's a mistake and they should use 'INCOTERM'
         # So, for the moment, I ignore the attributes in the xpath for incoterm
         delivery_term_xpath = xml_root.xpath(
-            "/%s/cac:DeliveryTerms" % root_name, namespaces=ns
+            f"/{root_name}/cac:DeliveryTerms", namespaces=ns
         )
         if delivery_term_xpath:
-            incoterm_dict = self.ubl_parse_incoterm(delivery_term_xpath[0], ns)
+            incoterm_dict = self.base_ubl.ubl_parse_incoterm(delivery_term_xpath[0], ns)
         else:
             incoterm_dict = {}
         invoicing_xpath = xml_root.xpath(
-            "/%s/cac:AccountingCustomerParty" % root_name, namespaces=ns
+            f"/{root_name}/cac:AccountingCustomerParty", namespaces=ns
         )
         invoicing_dict = {}
         if invoicing_xpath:
-            invoicing_dict = self.ubl_parse_customer_party(invoicing_xpath[0], ns)
-        note_xpath = xml_root.xpath("/%s/cbc:Note" % root_name, namespaces=ns)
+            invoicing_dict = self.base_ubl.ubl_parse_customer_party(
+                invoicing_xpath[0], ns
+            )
+        note_xpath = xml_root.xpath(f"/{root_name}/cbc:Note", namespaces=ns)
         lines_xpath = xml_root.xpath(f"/{root_name}/{line_name}", namespaces=ns)
         res_lines = []
         for line in lines_xpath:
