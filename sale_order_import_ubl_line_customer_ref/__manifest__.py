@@ -2,7 +2,7 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl)
 {
     "name": "Sale Order UBL Import - Import order line customer ref",
-    "version": "14.0.1.0.2",
+    "version": "18.0.1.0.0",
     "category": "Sales Management",
     "license": "AGPL-3",
     "summary": "Extract specific customer reference for each order line",
