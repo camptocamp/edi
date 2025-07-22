@@ -186,10 +186,38 @@ class ProductImport(models.TransientModel):
             parsed_product["code"],
             company_id=product_company_id,
         )
-        uom = self._bdimport._match_uom(parsed_product["uom"], chatter_msg)
-        currency = self._bdimport._match_currency(
-            parsed_product["currency"], chatter_msg
+
+    def _existing_product(self, barcode, code, company_id):
+        product = None
+        if barcode:
+            product = self._search_product([("barcode", "=", barcode)], company_id)
+        return product or self._search_product(
+            [("default_code", "=", code)], company_id
         )
+
+    @api.model
+    def _prepare_product(self, parsed_product, seller, company_id, chatter_msg):
+        # By default records product.product are created with company_id=False.
+        # Only the pricelist (product.supplierinfo) is company-specific.
+        # Setting "product_import_set_company" change the behavior.
+        # Beware that barcode is unique key of product.template model
+        # Can be changed by OCA add-on "product_barcode_constraint_per_company"
+        import_company = self.env["res.company"].browse(company_id)
+        product_company_id = (
+            import_company.id if import_company.product_import_set_company else False
+        )
+        product = self._existing_product(
+            parsed_product["barcode"],
+            parsed_product["code"],
+            company_id=product_company_id,
+        )
+        uom = self._bdimport._match_uom(parsed_product["uom"], chatter_msg)
+        if parsed_product["currency"]:
+            currency = self._bdimport._match_currency(
+                parsed_product["currency"], chatter_msg
+            )
+        else:
+            currency = (import_company or self.env.company).currency_id
 
         product_vals = {
             "active": parsed_product.get("active", True),
