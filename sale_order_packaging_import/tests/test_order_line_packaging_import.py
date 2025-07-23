@@ -1,14 +1,18 @@
 # Copyright 2022 Camptocamp SA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
-from odoo.tests.common import SavepointCase
+from odoo.tests.common import TransactionCase
 
 
-class TestOrderLinePackagingImport(SavepointCase):
+class TestOrderLinePackagingImport(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
+        cls.currency = cls.env.ref("base.main_company").currency_id
+        cls.pricelist_currency = cls.env["product.pricelist"].create(
+            {"name": "Pricelist Currency", "currency_id": cls.currency.id}
+        )
         cls.product = cls.env.ref("product.product_delivery_02")
         cls.pack1 = cls.env["product.packaging"].create(
             {
@@ -27,7 +31,10 @@ class TestOrderLinePackagingImport(SavepointCase):
             }
         )
         cls.parsed_order = {
-            "partner": {"email": "deco.addict82@example.com"},
+            "partner": {
+                "email": "deco.addict82@example.com",
+                "property_product_pricelist": cls.pricelist_currency,
+            },
             "date": "2018-08-14",
             "order_ref": "TEST1234",
             "lines": [
