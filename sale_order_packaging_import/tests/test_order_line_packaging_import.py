@@ -52,7 +52,7 @@ class TestOrderLinePackagingImport(TransactionCase):
     def test_order_line_packaging_import(self):
         order = self.soio.create_order(self.parsed_order, "pricelist")
         line = order.order_line[0]
-        self.assertEqual(line.product_packaging, self.pack1)
+        self.assertEqual(line.product_packaging_id, self.pack1)
         self.assertEqual(line.product_packaging_qty, 2)
         self.assertEqual(line.product_uom_qty, 2 * 12)
         # Change the quantity
@@ -64,20 +64,20 @@ class TestOrderLinePackagingImport(TransactionCase):
         self.parsed_order["lines"][0]["qty"] = 5
         self.parsed_order["lines"][0]["product"]["barcode"] = "PACK002"
         self.soio.update_order_lines(self.parsed_order, order, "pricelist")
-        self.assertEqual(line.product_packaging, self.pack2)
+        self.assertEqual(line.product_packaging_id, self.pack2)
         self.assertEqual(line.product_uom_qty, 5 * 3)
         self.assertEqual(line.product_packaging_qty, 5)
         # Remove the packaging
         self.parsed_order["lines"][0]["product"]["code"] = "FURN_8888"
         self.parsed_order["lines"][0]["product"]["barcode"] = ""
         self.soio.update_order_lines(self.parsed_order, order, "pricelist")
-        self.assertFalse(line.product_packaging)
+        self.assertFalse(line.product_packaging_id)
         self.assertEqual(line.product_uom_qty, 5)
         self.assertEqual(line.product_packaging_qty, False)
         # Add the packaging again
         self.parsed_order["lines"][0]["qty"] = 1
         self.parsed_order["lines"][0]["product"]["barcode"] = "PACK001"
         self.soio.update_order_lines(self.parsed_order, order, "pricelist")
-        self.assertEqual(line.product_packaging, self.pack1)
+        self.assertEqual(line.product_packaging_id, self.pack1)
         self.assertEqual(line.product_uom_qty, 1 * 12)
         self.assertEqual(line.product_packaging_qty, 1)

@@ -20,13 +20,13 @@ class SaleOrderImport(models.TransientModel):
                 lambda pack: pack.barcode == packaging_code
             )
             if packaging:
-                vals["product_packaging"] = packaging.id
-                vals["product_uom_qty"] = 0
+                vals["product_packaging_id"] = packaging.id
+                vals["product_uom_qty"] = import_line["qty"] * packaging.qty
                 vals["product_packaging_qty"] = import_line["qty"]
         return vals
 
     def _prepare_update_order_line_vals(self, change_dict):
         vals = super()._prepare_update_order_line_vals(change_dict)
         if "packaging" in change_dict:
-            vals.update({"product_packaging": change_dict["packaging"][1]})
+            vals.update({"product_packaging_id": change_dict["packaging"][1]})
         return vals

@@ -27,8 +27,8 @@ class BusinessDocumentImport(models.AbstractModel):
                     values["qty"] = [oline.product_uom_qty, qty]
                 elif "qty" in values.keys():
                     values.pop("qty")
-        if packaging and packaging != oline.product_packaging:
-            values["packaging"] = [oline.product_packaging.id, packaging.id]
-        elif not packaging and oline.product_packaging:
-            values["packaging"] = [oline.product_packaging.id, False]
+        if packaging and packaging != oline.product_packaging_id:
+            values["packaging"] = [oline.product_packaging_id.id, packaging.id]
+        elif not packaging and oline.product_packaging_id:
+            values["packaging"] = [oline.product_packaging_id.id, False]
         return values
