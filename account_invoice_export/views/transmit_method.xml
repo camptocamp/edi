@@ -25,6 +25,7 @@
                     <field name="destination_url" invisible="not send_through_http" />
                     <field name="destination_user" invisible="not send_through_http" />
                     <field name="destination_pwd" invisible="not send_through_http" />
+                    <field name="report_to_export" invisible="not send_through_http" />
                 </group>
             </xpath>
         </field>
