@@ -1,0 +1,2 @@
+odoo-addon-base_unece @ git+https://github.com/OCA/community-data-files.git@refs/pull/255/head#subdirectory=base_unece
+odoo-addon-account_tax_unece @ git+https://github.com/OCA/community-data-files.git@refs/pull/257/head#subdirectory=account_tax_unece
