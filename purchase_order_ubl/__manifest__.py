@@ -3,12 +3,12 @@
 
 {
     "name": "Purchase Order UBL",
-    "version": "16.0.1.1.0",
+    "version": "19.0.1.0.0",
     "category": "Purchase Management",
     "license": "AGPL-3",
     "summary": "Embed UBL XML file inside the PDF purchase order",
     "author": "Akretion,Odoo Community Association (OCA)",
     "website": "https://github.com/OCA/edi",
-    "depends": ["purchase", "base_ubl"],
+    "depends": ["purchase", "base_ubl_generate"],
     "installable": True,
 }

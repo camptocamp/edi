@@ -3,10 +3,13 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
 import logging
+from io import BytesIO
 
 from lxml import etree
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
+from odoo.tools.pdf import OdooPdfFileReader, OdooPdfFileWriter
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +21,6 @@ class PurchaseOrder(models.Model):
     @api.model
     def get_rfq_states(self):
         return ["draft", "sent", "to approve"]
-
-    @api.model
-    def get_order_states(self):
-        return ["purchase", "done"]
 
     def _ubl_add_header(self, doc_type, parent_node, ns, version="2.1"):
         if doc_type == "rfq":
@@ -42,9 +41,9 @@ class PurchaseOrder(models.Model):
         if doc_type == "rfq":  # IssueTime is required on RFQ, not on order
             issue_time = etree.SubElement(parent_node, ns["cbc"] + "IssueTime")
             issue_time.text = time
-        if self.notes:
+        if self.note:
             note = etree.SubElement(parent_node, ns["cbc"] + "Note")
-            note.text = self.notes
+            note.text = self.note
         doc_currency = etree.SubElement(parent_node, ns["cbc"] + currency_node_name)
         doc_currency.text = self.currency_id.name
 
@@ -73,7 +72,7 @@ class PurchaseOrder(models.Model):
             oline.product_id,
             "purchase",
             oline.product_qty,
-            oline.product_uom,
+            oline.product_uom_id,
             line_root,
             ns,
             seller=self.partner_id.commercial_partner_id,
@@ -91,7 +90,7 @@ class PurchaseOrder(models.Model):
             oline.product_id,
             "purchase",
             oline.product_qty,
-            oline.product_uom,
+            oline.product_uom_id,
             line_root,
             ns,
             seller=self.partner_id.commercial_partner_id,
@@ -184,17 +183,24 @@ class PurchaseOrder(models.Model):
             xml_root, pretty_print=True, encoding="UTF-8", xml_declaration=True
         )
         logger.debug(
-            "%s UBL XML file generated for purchase order ID %d (state %s)",
-            doc_type,
-            self.id,
-            self.state,
+            "%(doc_type)s UBL XML file generated "
+            "for purchase order ID %(id)d (state %(state)s)",
+            doc_type=doc_type,
+            id=self.id,
+            state=self.state,
         )
         logger.debug(xml_string)
         return xml_string
 
     def get_ubl_xml_etree(self, doc_type, version="2.1"):
         self.ensure_one()
-        assert doc_type in ("order", "rfq"), "wrong doc_type"
+        if doc_type not in ("order", "rfq"):
+            raise UserError(
+                self.env._(
+                    "Wrong document type %(doc_type)s to generate UBL XML",
+                    doc_type=doc_type,
+                )
+            )
         logger.debug("Starting to generate UBL XML %s file", doc_type)
         lang = self.get_ubl_lang()
         # The aim of injecting lang in context
@@ -224,9 +230,9 @@ class PurchaseOrder(models.Model):
     def get_ubl_filename(self, doc_type, version="2.1"):
         """This method is designed to be inherited"""
         if doc_type == "rfq":
-            return "UBL-RequestForQuotation-%s.xml" % version
+            return f"UBL-RequestForQuotation-{version}.xml"
         elif doc_type == "order":
-            return "UBL-Order-%s.xml" % version
+            return f"UBL-Order-{version}.xml"
 
     def get_ubl_version(self):
         return self.env.context.get("ubl_version", "2.1")
@@ -242,7 +248,15 @@ class PurchaseOrder(models.Model):
             version = self.get_ubl_version()
             xml_filename = self.get_ubl_filename(doc_type, version=version)
             xml_string = self.generate_ubl_xml_string(doc_type, version=version)
-            buffer = self._ubl_add_xml_in_pdf_buffer(xml_string, xml_filename, buffer)
+            pdf_content = buffer.getvalue()
+            reader_buffer = BytesIO(pdf_content)
+            reader = OdooPdfFileReader(reader_buffer, strict=False)
+            writer = OdooPdfFileWriter()
+            writer.cloneReaderDocumentRoot(reader)
+            writer.addAttachment(xml_filename, xml_string, subtype="text/xml")
+            buffer.close()
+            buffer = BytesIO()
+            writer.write(buffer)
         return buffer
 
     def embed_ubl_xml_in_pdf(self, pdf_content, pdf_file=None):
@@ -265,6 +279,6 @@ class PurchaseOrder(models.Model):
         doc_type = False
         if self.state in self.get_rfq_states():
             doc_type = "rfq"
-        elif self.state in self.get_order_states():
+        elif self.state == "purchase":
             doc_type = "order"
         return doc_type
