@@ -1,0 +1,2 @@
+odoo-addon-despatch_advice_import @ git+https://github.com/OCA/edi.git@refs/pull/1332/head#subdirectory=despatch_advice_import
+odoo-addon-pdf_xml_attachment @ git+https://github.com/OCA/reporting-engine.git@refs/pull/1157/head#subdirectory=pdf_xml_attachment
