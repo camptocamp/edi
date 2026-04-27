@@ -74,39 +74,30 @@ msgid "ID"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
-#: model:ir.ui.view,arch_db:purchase_order_import.purchase_order_import_form
 msgid "If it is a PDF file, Odoo will try to find an XML file in the attachments of the PDF file and then use this XML file."
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
-#: model:ir.ui.view,arch_db:purchase_order_import.purchase_order_import_form
 msgid "If it is an XML file, Odoo will parse it if the module that adds support for this XML format is installed. For the"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
 msgid "If the status code is Accepted: confirm the PO and create the picking"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
 msgid "If the status code is Conditionally accepted: confirm the PO and create the picking and update the picking operations according to the amendments specified into the document"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
 msgid "If the status code is Rejected: cancel the PO"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
 msgid "If the status code is acknowledgement: update the acknowledge datetime on the PO"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
 msgid "Import OrderResponse File from Supplier"
 msgstr ""
 
@@ -122,12 +113,10 @@ msgid "Import Quotation File"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.purchase_order_import_form
 msgid "Import Quotations Files from Suppliers"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
 msgid "Import document"
 msgstr ""
 
@@ -207,7 +196,6 @@ msgid "PO confirmed with amendment by the supplier."
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
 msgid "Possible line amendments:"
 msgstr ""
 
@@ -277,12 +265,10 @@ msgid "The incoterm has been updated from %s to %s upon import of the quotation 
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
 msgid "The order line is accepted with change: The picking operation is modified. (split to stock move). If a backorder qty is provided, a backorder is created. Otherwise the stock.move for the missing quantities is cancelled."
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
 msgid "The order line is refused: The picking operation is cancelled"
 msgstr ""
 
@@ -311,12 +297,10 @@ msgid "The unit price has been updated on the RFQ line with product '%s' from %s
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.purchase_order_import_form
 msgid "Then, Odoo will compare the imported quotation and the current RFQ:"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
 msgid "Then, Odoo will process the related purchase order as follow:"
 msgstr ""
 
@@ -414,8 +398,6 @@ msgid "Unable to conditionally confirm the purchase order. \n"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
-#: model:ir.ui.view,arch_db:purchase_order_import.purchase_order_import_form
 msgid "Universal Business Language"
 msgstr ""
 
@@ -437,7 +419,6 @@ msgid "Update Option"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.purchase_order_import_form
 msgid "Update RFQ"
 msgstr ""
 
@@ -452,12 +433,10 @@ msgid "Upload an Order response file that you received from your supplier. Suppo
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
 msgid "Upload below the OrderResponse you received from your supplier. When you click on the import button:"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.purchase_order_import_form
 msgid "Upload below the quotation that you received from your supplier for this RFQ as XML or PDF file. When you click on the Update RFQ button:"
 msgstr ""
 
@@ -478,28 +457,22 @@ msgid "You must select a quotation to update."
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
-#: model:ir.ui.view,arch_db:purchase_order_import.purchase_order_import_form
 msgid "for lines that are present both in the imported quotation and in the RFQ, Odoo will update the unit prices (and also the quantities, depending on the chosen option),"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.purchase_order_import_form
 msgid "for the lines that are present only in the RFQ, Odoo will put a warning message in the chatter (it won't delete them automatically)."
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.purchase_order_import_form
 msgid "for the lines that are present only in the quotation (shipping costs for example), Odoo will add them to the RFQ,"
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.order_response_import_form
 msgid "format (UBL), you should install the module <em>order_response_import_ubl</em>."
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.ui.view,arch_db:purchase_order_import.purchase_order_import_form
 msgid "format (UBL), you should install the module <em>purchase_order_import_ubl</em>."
 msgstr ""
 
