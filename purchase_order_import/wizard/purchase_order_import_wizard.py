@@ -4,24 +4,26 @@
 
 import logging
 import mimetypes
+from base64 import b64decode, b64encode
+from typing import Any
 
 from lxml import etree
 
-from odoo import _, api, fields, models
+from odoo import api, fields, models
 from odoo.exceptions import UserError
-from odoo.tools import config, float_is_zero
 
 logger = logging.getLogger(__name__)
 
 
-class PurchaseOrderImport(models.TransientModel):
-    _name = "purchase.order.import"
+class PurchaseOrderImportWizard(models.TransientModel):
+    _name = "purchase.order.import.wizard"
     _description = "Purchase Order Import from Files"
 
     @api.model
-    def _get_purchase_id(self):
-        assert self._context["active_model"] == "purchase.order", "bad active_model"
-        return self.env["purchase.order"].browse(self._context["active_id"])
+    def _get_purchase_id(self) -> models.Model:
+        """Return the active purchase order selected for quotation import."""
+        assert self.env.context["active_model"] == "purchase.order", "bad active_model"
+        return self.env["purchase.order"].browse(self.env.context["active_id"])
 
     quote_file = fields.Binary(
         string="XML or PDF Quotation",
@@ -37,42 +39,46 @@ class PurchaseOrderImport(models.TransientModel):
             ("all", "Price and Quantity"),
         ],
         default="price",
-        string="Update Option",
         required=True,
     )
     purchase_id = fields.Many2one(
         "purchase.order",
         string="RFQ to Update",
-        default=_get_purchase_id,
+        default=lambda self: self._get_purchase_id(),
         readonly=True,
     )
 
     @api.model
-    def parse_xml_quote(self, xml_root):
+    def parse_xml_quote(self, xml_root: etree._Element) -> dict[str, Any]:
+        """Parse an XML quotation document.
+
+        The hook method to be implemented by other modules supporting
+        specific XML formats. It should return the parsed quotation in a
+        normalized dictionary format.
+        """
         raise UserError(
-            _(
+            self.env._(
                 "This type of XML quotation is not supported. Did you install "
                 "the module to support this XML format?"
             )
         )
 
     @api.model
-    def parse_pdf_quote(self, quote_file):
-        """
-        Get PDF attachments, filter on XML files and call import_order_xml
-        """
-        xml_files_dict = self.get_xml_files_from_pdf(quote_file)
+    def parse_pdf_quote(self, quote_file: bytes) -> dict[str, Any]:
+        """Parse the first supported XML attachment embedded in a PDF."""
+        xml_files_dict = self.env["pdf.xml.tool"].pdf_get_xml_files(quote_file)
         if not xml_files_dict:
-            raise UserError(_("There are no embedded XML file in this PDF file."))
-        for xml_filename, xml_root in xml_files_dict.iteritems():
+            raise UserError(
+                self.env._("There are no embedded XML files in this PDF file.")
+            )
+        for xml_filename, xml_root in xml_files_dict.items():
             logger.info("Trying to parse XML file %s", xml_filename)
             try:
-                parsed_quote = self.parse_xml_quote(xml_root)
-                return parsed_quote
-            except:
+                return self.parse_xml_quote(xml_root)
+            except UserError:
                 continue
         raise UserError(
-            _(
+            self.env._(
                 "This type of XML quotation is not supported. Did you install "
                 "the module to support this XML format?"
             )
@@ -103,42 +109,49 @@ class PurchaseOrderImport(models.TransientModel):
     #    }]
 
     @api.model
-    def parse_quote(self, quote_file, quote_filename):
-        assert quote_file, "Missing quote file"
-        assert quote_filename, "Missing quote filename"
+    def parse_quote(self, quote_file: bytes, quote_filename: str) -> dict[str, Any]:
+        """Parse an uploaded quotation file into normalized import data."""
+        if not quote_file:
+            raise UserError(self.env._("Missing quote file."))
+        if not quote_filename:
+            raise UserError(self.env._("Missing quote filename."))
         filetype = mimetypes.guess_type(quote_filename)[0]
         logger.debug("Quote file mimetype: %s", filetype)
         if filetype in ["application/xml", "text/xml"]:
             try:
                 xml_root = etree.fromstring(quote_file)
-            except:
-                raise UserError(_("This XML file is not XML-compliant"))
-            pretty_xml_string = etree.tostring(
-                xml_root, pretty_print=True, encoding="UTF-8", xml_declaration=True
-            )
-            logger.debug("Starting to import the following XML file:")
-            logger.debug(pretty_xml_string)
+            except etree.XMLSyntaxError as e:
+                raise UserError(
+                    self.env._("This XML file is not XML-compliant.")
+                ) from e
+            if logger.isEnabledFor(logging.DEBUG):
+                pretty_xml_string = etree.tostring(
+                    xml_root,
+                    pretty_print=True,
+                    encoding="UTF-8",
+                    xml_declaration=True,
+                )
+                logger.debug("Starting to import the following XML file:")
+                logger.debug(pretty_xml_string)
             parsed_quote = self.parse_xml_quote(xml_root)
         elif filetype == "application/pdf":
             parsed_quote = self.parse_pdf_quote(quote_file)
         else:
             raise UserError(
-                _(
-                    "This file '%s' is not recognised as XML nor PDF file. "
-                    "Please check the file and it's extension."
+                self.env._(
+                    "This file '%(filename)s' is not recognised as XML nor PDF file. "
+                    "Please check the file and it's extension.",
+                    filename=quote_filename,
                 )
-                % quote_filename
             )
         logger.debug("Result of quotation parsing: %s", parsed_quote)
         if "attachments" not in parsed_quote:
             parsed_quote["attachments"] = {}
-        parsed_quote["attachments"][quote_filename] = quote_file.encode("base64")
+        parsed_quote["attachments"][quote_filename] = b64encode(quote_file).decode()
         if "chatter_msg" not in parsed_quote:
             parsed_quote["chatter_msg"] = []
-        if (
-            parsed_quote.get("company")
-            and not config["test_enable"]
-            and not self._context.get("edi_skip_company_check")
+        if parsed_quote.get("company") and not self.env.context.get(
+            "edi_skip_company_check"
         ):
             self.env["business.document.import"]._check_company(
                 parsed_quote["company"], parsed_quote["chatter_msg"]
@@ -146,40 +159,51 @@ class PurchaseOrderImport(models.TransientModel):
         return parsed_quote
 
     @api.model
-    def _prepare_update_order_vals(self, parsed_quote, order):
+    def _prepare_update_order_vals(
+        self, parsed_quote: dict[str, Any], order: models.Model
+    ) -> dict[str, Any]:
+        """Prepare purchase order values updated from the parsed quotation."""
         vals = {}
         incoterm = self.env["business.document.import"]._match_incoterm(
             parsed_quote.get("incoterm"), parsed_quote["chatter_msg"]
         )
         if incoterm and incoterm != order.incoterm_id:
             parsed_quote["chatter_msg"].append(
-                _(
-                    "The incoterm has been updated from %s to %s upon import "
-                    "of the quotation file '%s'"
+                self.env._(
+                    "The incoterm has been updated from %(old_incoterm)s to "
+                    "%(new_incoterm)s upon import of the quotation file "
+                    "'%(filename)s'",
+                    old_incoterm=order.incoterm_id.code,
+                    new_incoterm=incoterm.code,
+                    filename=self.quote_filename,
                 )
-                % (order.incoterm_id.code, incoterm.code, self.quote_filename)
             )
             vals["incoterm_id"] = incoterm.id
         return vals
 
-    @api.multi
-    def update_order_lines(self, parsed_quote, order):
+    def update_order_lines(
+        self, parsed_quote: dict[str, Any], order: models.Model
+    ) -> bool:
+        """Update RFQ lines from a parsed supplier quotation.
+
+        The import compares matched products and keeps a conservative behavior:
+        it updates existing prices, optionally updates quantities, adds missing
+        quoted products, and only warns about RFQ lines absent from the quote.
+        """
         polo = self.env["purchase.order.line"]
         chatter = parsed_quote["chatter_msg"]
-        dpo = self.env["decimal.precision"]
         bdio = self.env["business.document.import"]
-        qty_prec = dpo.precision_get("Product Unit of Measure")
         existing_lines = []
         for oline in order.order_line:
             price_unit = 0.0
-            if not float_is_zero(oline.product_qty, precision_digits=qty_prec):
+            if not oline.product_uom_id.is_zero(oline.product_qty):
                 price_unit = oline.price_subtotal / float(oline.product_qty)
             existing_lines.append(
                 {
                     "product": oline.product_id,
                     "name": oline.name,
                     "qty": oline.product_qty,
-                    "uom": oline.product_uom,
+                    "uom": oline.product_uom_id,
                     "price_unit": price_unit,
                     "line": oline,
                 }
@@ -193,33 +217,33 @@ class PurchaseOrderImport(models.TransientModel):
         )
 
         update_option = self.update_option
-        for oline, cdict in compare_res["to_update"].iteritems():
+        if not compare_res:
+            return True
+        for oline, cdict in compare_res["to_update"].items():
             write_vals = {}
             if cdict.get("price_unit"):
                 chatter.append(
-                    _(
+                    self.env._(
                         "The unit price has been updated on the RFQ line with "
-                        "product '%s' from %s to %s %s."
-                    )
-                    % (
-                        oline.product_id.display_name,
-                        cdict["price_unit"][0],
-                        cdict["price_unit"][1],
-                        order.currency_id.name,
+                        "product '%(product)s' from %(old_price)s to "
+                        "%(new_price)s %(currency)s.",
+                        product=oline.product_id.display_name,
+                        old_price=cdict["price_unit"][0],
+                        new_price=cdict["price_unit"][1],
+                        currency=order.currency_id.name,
                     )
                 )
                 write_vals["price_unit"] = cdict["price_unit"][1]  # TODO
             if update_option == "all" and cdict.get("qty"):
                 chatter.append(
-                    _(
+                    self.env._(
                         "The quantity has been updated on the RFQ line with "
-                        "product '%s' from %s to %s %s."
-                    )
-                    % (
-                        oline.product_id.display_name,
-                        cdict["qty"][0],
-                        cdict["qty"][1],
-                        oline.product_uom.name,
+                        "product '%(product)s' from %(old_qty)s to "
+                        "%(new_qty)s %(uom)s.",
+                        product=oline.product_id.display_name,
+                        old_qty=cdict["qty"][0],
+                        new_qty=cdict["qty"][1],
+                        uom=oline.product_uom_id.name,
                     )
                 )
                 write_vals["product_qty"] = cdict["qty"][1]
@@ -227,12 +251,17 @@ class PurchaseOrderImport(models.TransientModel):
                 oline.write(write_vals)
         if compare_res["to_remove"]:  # we don't delete the lines, only warn
             warn_label = [
-                "%s %s x %s" % (l.product_qty, l.product_uom.name, l.product_id.name)
-                for l in compare_res["to_remove"]
+                f"{line.product_qty} {line.product_uom_id.name} x "
+                f"{line.product_id.name}"
+                for line in compare_res["to_remove"]
             ]
             chatter.append(
-                _("%d order line(s) are not in the imported quotation: %s")
-                % (len(compare_res["to_remove"]), ", ".join(warn_label))
+                self.env._(
+                    "%(line_count)d order line(s) are not in the imported "
+                    "quotation: %(lines)s",
+                    line_count=len(compare_res["to_remove"]),
+                    lines=", ".join(warn_label),
+                )
             )
         if compare_res["to_add"]:
             to_create_label = []
@@ -243,38 +272,51 @@ class PurchaseOrderImport(models.TransientModel):
                 line_vals["order_id"] = order.id
                 new_line = polo.create(line_vals)
                 to_create_label.append(
-                    "%s %s x %s"
-                    % (new_line.product_qty, new_line.product_uom.name, new_line.name)
+                    f"{new_line.product_qty} {new_line.product_uom_id.name} x "
+                    f"{new_line.name}"
                 )
             chatter.append(
-                _("%d new order line(s) created: %s")
-                % (len(compare_res["to_add"]), ", ".join(to_create_label))
+                self.env._(
+                    "%(line_count)d new order line(s) created: %(lines)s",
+                    line_count=len(compare_res["to_add"]),
+                    lines=", ".join(to_create_label),
+                )
             )
         return True
 
     @api.model
-    def _prepare_create_order_line(self, product, uom, import_line, order):
+    def _prepare_create_order_line(
+        self,
+        product: models.Model,
+        uom: models.Model,
+        import_line: dict[str, Any],
+        order: models.Model,
+    ) -> dict[str, Any]:
+        """Prepare a purchase order line for a quoted product missing on the RFQ."""
         polo = self.env["purchase.order.line"]
         vals = {
             "product_id": product.id,
-            "order_id": order,
+            "order_id": order.id,
             "price_unit": import_line["price_unit"],
+            "product_qty": import_line.get("qty") or 1.0,
+            "product_uom_id": uom.id,
         }
         vals.update(polo.play_onchanges(vals, ["product_id"]))
-        vals.pop("order_id")
+        vals["product_qty"] = import_line.get("qty") or vals.get("product_qty") or 1.0
+        vals["product_uom_id"] = uom.id
+        vals.pop("order_id", None)
         return vals
 
-    @api.multi
-    def update_rfq_button(self):
+    def update_rfq_button(self) -> bool:
+        """Update the active RFQ from the uploaded quotation file."""
         self.ensure_one()
         bdio = self.env["business.document.import"]
         order = self.purchase_id
         assert order, "No link to PO"
         if not order:
-            raise UserError(_("You must select a quotation to update."))
-        parsed_quote = self.parse_quote(
-            self.quote_file.decode("base64"), self.quote_filename
-        )
+            raise UserError(self.env._("You must select a quotation to update."))
+        order.ensure_one()
+        parsed_quote = self.parse_quote(b64decode(self.quote_file), self.quote_filename)
         currency = bdio._match_currency(
             parsed_quote.get("currency"), parsed_quote["chatter_msg"]
         )
@@ -285,28 +327,27 @@ class PurchaseOrderImport(models.TransientModel):
         )
         if partner.commercial_partner_id != order.partner_id.commercial_partner_id:
             raise UserError(
-                _(
-                    "The supplier of the imported quotation (%s) is different "
-                    "from the supplier of the RFQ (%s)."
-                    % (
-                        partner.commercial_partner_id.name,
-                        order.partner_id.commercial_partner_id.name,
-                    )
+                self.env._(
+                    "The supplier of the imported quotation (%(supplier)s) is "
+                    "different from the supplier of the RFQ (%(order_supplier)s).",
+                    supplier=partner.commercial_partner_id.name,
+                    order_supplier=order.partner_id.commercial_partner_id.name,
                 )
             )
         if currency != order.currency_id:
             raise UserError(
-                _(
-                    "The currency of the imported quotation (%s) is different "
-                    "from the currency of the RFQ (%s)"
+                self.env._(
+                    "The currency of the imported quotation (%(currency)s) is "
+                    "different from the currency of the RFQ (%(order_currency)s)",
+                    currency=currency.name,
+                    order_currency=order.currency_id.name,
                 )
-                % (currency.name, order.currency_id.name)
             )
         vals = self._prepare_update_order_vals(parsed_quote, order)
         if vals:
             order.write(vals)
         if not parsed_quote.get("lines"):
-            raise UserError(_("This quotation doesn't have any line !"))
+            raise UserError(self.env._("This quotation doesn't have any line."))
         self.update_order_lines(parsed_quote, order)
         bdio.post_create_or_update(parsed_quote, order)
         logger.info(
@@ -315,10 +356,10 @@ class PurchaseOrderImport(models.TransientModel):
             self.quote_filename,
         )
         order.message_post(
-            _(
+            body=self.env._(
                 "This RFQ has been updated automatically via the import of "
-                "quotation file %s"
+                "quotation file %(filename)s",
+                filename=self.quote_filename,
             )
-            % self.quote_filename
         )
         return True
