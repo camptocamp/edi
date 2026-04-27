@@ -3,41 +3,21 @@
 
 import logging
 import mimetypes
+from base64 import b64decode, b64encode
+from typing import Any
 
 from lxml import etree
 
-from odoo import _, api, fields, models
+from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
-from odoo.tools import config, float_compare
+from odoo.fields import Domain
 
 logger = logging.getLogger(__name__)
-
-ORDER_RESPONSE_STATUS_ACK = "acknowledgement"
-ORDER_RESPONSE_STATUS_ACCEPTED = "accepted"
-ORDER_RESPONSE_STATUS_REJECTED = "rejected"
-ORDER_RESPONSE_STATUS_CONDITIONAL = "conditionally_accepted"
-
-LINE_STATUS_ACCEPTED = "accepted"
-LINE_STATUS_REJECTED = "rejected"
-LINE_STATUS_AMEND = "amend"
-
-
-def is_int(val):
-    try:
-        int(val)
-        return True
-    except ValueError:
-        return False
 
 
 class OrderResponseImport(models.TransientModel):
     _name = "order.response.import"
     _description = "Purchase Order Response Import from Files"
-
-    @api.model
-    def _get_purchase_id(self):
-        assert self._context["active_model"] == "purchase.order", "bad active_model"
-        return self.env["purchase.order"].browse(self._context["active_id"])
 
     document = fields.Binary(
         string="XML or PDF Order response",
@@ -46,34 +26,39 @@ class OrderResponseImport(models.TransientModel):
         "your supplier. Supported formats: XML and PDF "
         "(PDF with an embeded XML file).",
     )
-    filename = fields.Char(string="Filename")
+    filename = fields.Char()
 
     @api.model
-    def parse_xml_order_document(self, xml_root):
+    def parse_xml_order_document(self, xml_root: etree._Element) -> dict[str, Any]:
+        """Parse an XML order response document.
+
+        The hook method to be implemented by other modules supporting
+        specific XML formats. It should return the parsed document in a
+        normalized dictionary format.
+        """
         raise UserError(
-            _(
+            self.env._(
                 "This type of XML Order Response is not supported. Did you "
                 "install the module to support this XML format?"
             )
         )
 
     @api.model
-    def parse_pdf_order_document(self, document):
-        """
-        Get PDF attachments, filter on XML files and call import_order_xml
-        """
-        xml_files_dict = self.get_xml_files_from_pdf(document)
+    def parse_pdf_order_document(self, document: bytes) -> dict[str, Any]:
+        """Get PDF attachments, filter on XML files and call import_order_xml."""
+        xml_files_dict = self.env["pdf.xml.tool"].pdf_get_xml_files(document)
         if not xml_files_dict:
-            raise UserError(_("There are no embedded XML file in this PDF file."))
-        for xml_filename, xml_root in xml_files_dict.iteritems():
+            raise UserError(
+                self.env._("There are no embedded XML files in this PDF file.")
+            )
+        for xml_filename, xml_root in xml_files_dict.items():
             logger.info("Trying to parse XML file %s", xml_filename)
             try:
-                parsed_order_document = self.parse_xml_order_document(xml_root)
-                return parsed_order_document
-            except:
+                return self.parse_xml_order_document(xml_root)
+            except UserError:
                 continue
         raise UserError(
-            _(
+            self.env._(
                 "This type of XML Order Document is not supported. Did you "
                 "install the module to support this XML format?"
             )
@@ -104,19 +89,22 @@ class OrderResponseImport(models.TransientModel):
     #    }]
 
     @api.model
-    def parse_order_response(self, document, filename):
+    def parse_order_response(self, document: bytes, filename: str) -> dict[str, Any]:
+        """Parse an uploaded order response file into normalized import data."""
         if not document:
-            raise UserError(_("Missing document file"))
+            raise UserError(self.env._("Missing document file."))
         if not filename:
-            raise UserError(_("Missing document filename"))
+            raise UserError(self.env._("Missing document filename."))
         filetype = mimetypes.guess_type(filename)[0]
         logger.debug("OrderResponse file mimetype: %s", filetype)
         if filetype in ["application/xml", "text/xml"]:
             try:
                 xml_root = etree.fromstring(document)
-            except:
+            except etree.XMLSyntaxError as e:
                 logger.exception("File is not XML-compliant")
-                raise UserError(_("This XML file is not XML-compliant"))
+                raise UserError(
+                    self.env._("This XML file is not XML-compliant.")
+                ) from e
             if logger.isEnabledFor(logging.DEBUG):
                 pretty_xml_string = etree.tostring(
                     xml_root,
@@ -131,22 +119,20 @@ class OrderResponseImport(models.TransientModel):
             parsed_order_document = self.parse_pdf_order_document(document)
         else:
             raise UserError(
-                _(
-                    "This file '%s' is not recognised as XML nor PDF file. "
-                    "Please check the file and it's extension."
+                self.env._(
+                    "This file '%(filename)s' is not recognised as XML nor PDF file. "
+                    "Please check the file and it's extension.",
+                    filename=filename,
                 )
-                % filename
             )
-        logger.debug("Result of OrderResponse parsing: ", parsed_order_document)
+        logger.debug("Result of OrderResponse parsing: %s", parsed_order_document)
         if "attachments" not in parsed_order_document:
             parsed_order_document["attachments"] = {}
-        parsed_order_document["attachments"][filename] = document.encode("base64")
+        parsed_order_document["attachments"][filename] = b64encode(document).decode()
         if "chatter_msg" not in parsed_order_document:
             parsed_order_document["chatter_msg"] = []
-        if (
-            parsed_order_document.get("company")
-            and not config["test_enable"]
-            and not self._context.get("edi_skip_company_check")
+        if parsed_order_document.get("company") and not self.env.context.get(
+            "edi_skip_company_check"
         ):
             self.env["business.document.import"]._check_company(
                 parsed_order_document["company"],
@@ -154,22 +140,30 @@ class OrderResponseImport(models.TransientModel):
             )
         return parsed_order_document
 
-    @api.multi
-    def process_document(self):
+    def process_document(self) -> dict[str, Any]:
+        """Process the uploaded document from the import wizard."""
         self.ensure_one()
         parsed_order_document = self.parse_order_response(
-            self.document.decode("base64"), self.filename
+            b64decode(self.document), self.filename
         )
-        self.process_data(parsed_order_document)
+        return self.process_data(parsed_order_document)
 
     @api.model
-    def process_data(self, parsed_order_document):
+    def process_data(self, parsed_order_document: dict[str, Any]) -> dict[str, Any]:
+        """Apply parsed order response data to its matching purchase order."""
         bdio = self.env["business.document.import"]
         po_name = parsed_order_document.get("ref")
-        order = self.env["purchase.order"].search([("name", "=", po_name)])
+        order = self.env["purchase.order"].search([Domain("name", "=", po_name)])
         if not order:
-            self.env["business.document.import"].user_error_wrap(
-                _("No purchase order found for name %s.") % po_name
+            bdio.user_error_wrap(
+                "process_data",
+                parsed_order_document,
+                self.env._(
+                    "No purchase order found for name %(po_name)s.",
+                    po_name=po_name,
+                ),
+                parsed_order_document["chatter_msg"],
+                True,
             )
 
         currency = bdio._match_currency(
@@ -183,37 +177,50 @@ class OrderResponseImport(models.TransientModel):
         )
         if partner.commercial_partner_id != order.partner_id.commercial_partner_id:
             bdio.user_error_wrap(
-                _(
-                    "The supplier of the imported OrderResponse (%s) "
+                "process_data",
+                parsed_order_document,
+                self.env._(
+                    "The supplier of the imported OrderResponse (%(supplier)s) "
                     "is different from the supplier of the purchase order "
-                    "(%s)."
-                    % (
-                        partner.commercial_partner_id.name,
-                        order.partner_id.commercial_partner_id.name,
-                    )
-                )
+                    "(%(order_supplier)s).",
+                    supplier=partner.commercial_partner_id.name,
+                    order_supplier=order.partner_id.commercial_partner_id.name,
+                ),
+                parsed_order_document["chatter_msg"],
+                True,
             )
         if currency and currency != order.currency_id:
             bdio.user_error_wrap(
-                _(
-                    "The currency of the imported OrderResponse (%s) "
+                "process_data",
+                parsed_order_document,
+                self.env._(
+                    "The currency of the imported OrderResponse (%(currency)s) "
                     "is different from the currency of the purchase order "
-                    "(%s)."
-                )
-                % (currency.name, order.currency_id.name)
+                    "(%(order_currency)s).",
+                    currency=currency.name,
+                    order_currency=order.currency_id.name,
+                ),
+                parsed_order_document["chatter_msg"],
+                True,
             )
 
         status = parsed_order_document.get("status")
-        if status == ORDER_RESPONSE_STATUS_ACK:
+        if status == "acknowledgement":
             self._process_ack(order, parsed_order_document)
-        elif status == ORDER_RESPONSE_STATUS_REJECTED:
+        elif status == "rejected":
             self._process_rejected(order, parsed_order_document)
-        elif status == ORDER_RESPONSE_STATUS_ACCEPTED:
+        elif status == "accepted":
             self._process_accepted(order, parsed_order_document)
-        elif status == ORDER_RESPONSE_STATUS_CONDITIONAL:
+        elif status == "conditionally_accepted":
             self._process_conditional(order, parsed_order_document)
         else:
-            bdio.user_error_wrap(_("Unknown status '%s'.") % status)
+            bdio.user_error_wrap(
+                "process_data",
+                parsed_order_document,
+                self.env._("Unknown status '%(status)s'.", status=status),
+                parsed_order_document["chatter_msg"],
+                True,
+            )
 
         bdio.post_create_or_update(parsed_order_document, order)
         logger.info(
@@ -222,143 +229,206 @@ class OrderResponseImport(models.TransientModel):
             self.filename,
         )
         order.message_post(
-            _(
-                "This purchase order has been updated automatically"
-                " via the import of OrderResponse file %s."
+            body=self.env._(
+                "This purchase order has been updated automatically via the import "
+                "of OrderResponse file %(filename)s.",
+                filename=self.filename,
             )
-            % self.filename
         )
         return order.get_formview_action()
 
     @api.model
-    def _process_ack(self, purchase_order, parsed_order_document):
+    def _process_ack(
+        self, purchase_order: models.Model, parsed_order_document: dict[str, Any]
+    ):
+        """Store the supplier acknowledgement date on the purchase order."""
         if not purchase_order.supplier_ack_dt:
             purchase_order.supplier_ack_dt = fields.Datetime.now()
 
     @api.model
-    def _process_rejected(self, purchase_order, parsed_order_document):
+    def _process_rejected(
+        self, purchase_order: models.Model, parsed_order_document: dict[str, Any]
+    ):
+        """Cancel the purchase order rejected by the supplier."""
         parsed_order_document["chatter_msg"] = (
             parsed_order_document["chatter_msg"] or []
         )
-        parsed_order_document["chatter_msg"].append(_("PO cancelled by the supplier."))
+        parsed_order_document["chatter_msg"].append(
+            self.env._("PO cancelled by the supplier.")
+        )
         purchase_order.button_cancel()
 
     @api.model
-    def _process_accepted(self, purchase_order, parsed_order_document):
+    def _process_accepted(
+        self, purchase_order: models.Model, parsed_order_document: dict[str, Any]
+    ):
+        """Confirm the purchase order accepted by the supplier."""
         parsed_order_document["chatter_msg"] = (
             parsed_order_document["chatter_msg"] or []
         )
-        parsed_order_document["chatter_msg"].append(_("PO confirmed by the supplier."))
+        parsed_order_document["chatter_msg"].append(
+            self.env._("PO confirmed by the supplier.")
+        )
         purchase_order.button_approve()
 
     @api.model
-    def _process_conditional(self, purchase_order, parsed_order_document):
-        precision = self.env["decimal.precision"].precision_get(
-            "Product Unit of Measure"
-        )
+    def _process_conditional(
+        self, purchase_order: models.Model, parsed_order_document: dict[str, Any]
+    ):
+        """Confirm an amended order response and synchronize receipt moves.
+
+        A conditional supplier acceptance must describe every PO line. Accepted
+        lines keep their receipt move, rejected lines cancel it, and amended
+        lines split the receipt between accepted, backordered, and cancelled
+        quantities according to the supplier response.
+        """
         chatter = parsed_order_document["chatter_msg"] = (
             parsed_order_document["chatter_msg"] or []
         )
-        chatter.append(_("PO confirmed with amendment by the supplier."))
+        chatter.append(self.env._("PO confirmed with amendment by the supplier."))
         lines = parsed_order_document["lines"]
-        line_ids = [int(l["line_id"]) for l in lines if is_int(l["line_id"])]
-        if set(line_ids) != set(purchase_order.order_line.ids):
+        lines_by_id = self._get_conditional_lines_by_id(
+            purchase_order, parsed_order_document, lines, chatter
+        )
+        if lines_by_id is None:
+            return
+        purchase_order.button_approve()
+        for order_line in purchase_order.order_line:
+            self._process_conditional_line(
+                order_line,
+                lines_by_id[order_line.id],
+                parsed_order_document,
+                chatter,
+            )
+
+    @api.model
+    def _get_conditional_lines_by_id(
+        self,
+        purchase_order: models.Model,
+        parsed_order_document: dict[str, Any],
+        lines: list[dict[str, Any]],
+        chatter: list[str],
+    ) -> dict[int, dict[str, Any]] | None:
+        """Return conditional response lines keyed by PO line id."""
+        try:
+            line_ids = {int(line["line_id"]) for line in lines}
+        except (KeyError, TypeError, ValueError):
+            line_ids = set()
+        if line_ids != set(purchase_order.order_line.ids):
             self.env["business.document.import"].user_error_wrap(
-                _(
+                "_process_conditional",
+                parsed_order_document,
+                self.env._(
                     "Unable to conditionally confirm the purchase order. \n"
                     "Line IDS into the parsed document differs from the "
                     "expected list of order line ids: \n "
-                    "received: %s\n"
-                    "expected: %s\n"
-                )
-                % (
-                    [l["line_id"] for l in lines],
-                    purchase_order.order_line.ids,
-                )
+                    "received: %(received_line_ids)s\n"
+                    "expected: %(expected_line_ids)s\n",
+                    received_line_ids=[line.get("line_id") for line in lines],
+                    expected_line_ids=purchase_order.order_line.ids,
+                ),
+                chatter,
+                True,
             )
-            return
-        purchase_order.button_approve()
-        # apply changes to the created moves...
-        lines_by_id = {int(l["line_id"]): l for l in lines}
-        for order_line in purchase_order.order_line:
-            line_info = lines_by_id[order_line.id]
-            note = line_info.get("note")
-            move = order_line.move_ids.filtered(
-                lambda x: x.state not in ("cancel", "done")
-            )
-            if len(move) != 1:
-                self.env["business.document.import"].user_error_wrap(
-                    _(
-                        "More than one move found for PO line.\n"
-                        "Move IDs: %s\n"
-                        "Line Info: %s"
-                    )
-                    % (move.ids, line_info)
-                )
-            if note:
-                move.write({"note": note})
-            status = line_info["status"]
-            if status == LINE_STATUS_ACCEPTED:
-                continue
-            if status == LINE_STATUS_REJECTED:
-                order_line.move_ids.action_cancel()
-            elif status == LINE_STATUS_AMEND:
-                qty = line_info["qty"]
-                backorder_qty = line_info["backorder_qty"]
-                move_qty = move.product_qty
-                if float_compare(qty, move_qty, precision_digits=precision) < 0:
-                    self._check_picking_status(move.picking_id)
-                    new_move_id = move.split(move_qty - qty)
-                    new_move = move.browse(new_move_id)
-                    to_cancel = None
-                    if backorder_qty:
-                        note = note + "\n" if note else ""
-                        note += (
-                            _("%s items should be delivered into a next delivery.")
-                            % backorder_qty
-                        )
-                        move.note = note
-                        # if the backorder qty is < than the remaining qty
-                        # split and cancel the qty that will not be delivered
-                        if (
-                            float_compare(
-                                backorder_qty,
-                                new_move.product_qty,
-                                precision_digits=precision,
-                            )
-                            < 0
-                        ):
-                            to_cancel_id = new_move.split(
-                                new_move.product_qty - backorder_qty
-                            )
-                            to_cancel = move.browse(to_cancel_id)
-                    else:
-                        to_cancel = new_move
-                    if to_cancel:
-                        to_cancel.action_cancel()
-                        to_cancel.write(
-                            {"note": _("No backorder planned by the supplier.")}
-                        )
-                    if new_move.state != "cancel":
-                        # move the new move into an backorder picking to avoid
-                        # that the scheduler merge the two moves into the same
-                        # pack operation
-                        self._add_move_to_backorder(new_move)
-
-                    # Reset Operations
-                    move.picking_id.do_prepare_partial()
+            return None
+        return {int(line["line_id"]): line for line in lines}
 
     @api.model
-    def _add_move_to_backorder(self, move):
-        """
-        Add the move the picking's backorder
-        return the backorder associated to the current picking. If no backorder
-        exists, create a new one.
-        :param move:
-        """
+    def _process_conditional_line(
+        self,
+        order_line: models.Model,
+        line_info: dict[str, Any],
+        parsed_order_document: dict[str, Any],
+        chatter: list[str],
+    ):
+        """Apply one conditional response line to its receipt move."""
+        note = line_info.get("note")
+        move = order_line.move_ids.filtered(lambda x: x.state not in ("cancel", "done"))
+        if len(move) != 1:
+            self.env["business.document.import"].user_error_wrap(
+                "_process_conditional",
+                parsed_order_document,
+                self.env._(
+                    "More than one move found for PO line.\n"
+                    "Move IDs: %(move_ids)s\n"
+                    "Line Info: %(line_info)s",
+                    move_ids=move.ids,
+                    line_info=line_info,
+                ),
+                chatter,
+                True,
+            )
+        if note:
+            move.write({"description_picking": note})
+        status = line_info["status"]
+        if status == "accepted":
+            return
+        if status == "rejected":
+            order_line.move_ids._action_cancel()
+        elif status == "amend":
+            self._process_amended_move(move, line_info, note)
+
+    @api.model
+    def _process_amended_move(
+        self, move: models.Model, line_info: dict[str, Any], note: str | None
+    ):
+        """Split amended receipt quantities into kept, backordered, and cancelled."""
+        qty = line_info["qty"]
+        backorder_qty = line_info["backorder_qty"]
+        move_qty = move.product_qty
+        if move.product_uom.compare(qty, move_qty) >= 0:
+            return
+        self._check_picking_status(move.picking_id)
+        new_move = self._split_move(move, move_qty - qty)
+        to_cancel = None
+        if backorder_qty:
+            self._add_backorder_note(move, note, backorder_qty)
+            if new_move.product_uom.compare(backorder_qty, new_move.product_qty) < 0:
+                to_cancel = self._split_move(
+                    new_move, new_move.product_qty - backorder_qty
+                )
+        else:
+            to_cancel = new_move
+        if to_cancel:
+            to_cancel._action_cancel()
+            to_cancel.write(
+                {
+                    "description_picking": self.env._(
+                        "No backorder planned by the supplier."
+                    )
+                }
+            )
+        if new_move.state != "cancel":
+            self._add_move_to_backorder(new_move)
+        move.picking_id.action_assign()
+
+    @api.model
+    def _add_backorder_note(
+        self, move: models.Model, note: str | None, backorder_qty: float
+    ):
+        """Append backorder information on the confirmed receipt move."""
+        note = note + "\n" if note else ""
+        move.description_picking = note + self.env._(
+            "%(qty)s items should be delivered into a next delivery.",
+            qty=backorder_qty,
+        )
+
+    @api.model
+    def _split_move(self, move: models.Model, qty: float) -> models.Model:
+        """Split a stock move and create the new move with modern stock APIs."""
+        new_move_vals = move._split(qty)
+        new_move = self.env["stock.move"].create(new_move_vals)
+        new_move._action_confirm(merge=False, create_proc=False)
+        return new_move
+
+    @api.model
+    def _add_move_to_backorder(self, move: models.Model):
+        """Move a split stock move to the receipt backorder."""
         StockPicking = self.env["stock.picking"]
         current_picking = move.picking_id
-        backorder = StockPicking.search([("backorder_id", "=", current_picking.id)])
+        backorder = StockPicking.search(
+            [Domain("backorder_id", "=", current_picking.id)]
+        )
         if not backorder:
             date_done = current_picking.date_done
             move.picking_id._create_backorder(backorder_moves=move)
@@ -370,18 +440,14 @@ class OrderResponseImport(models.TransientModel):
             backorder.action_assign()
 
     @api.model
-    def _check_picking_status(self, picking):
-        """
-        The picking operations have already begun
-        :param picking:
-        :return:
-        """
-        if any(operation.qty_done != 0 for operation in picking.pack_operation_ids):
+    def _check_picking_status(self, picking: models.Model):
+        """Block amendments when receipt operations have already started."""
+        if any(move_line.picked for move_line in picking.move_line_ids):
             raise ValidationError(
-                _(
-                    "Some Pack Operations have already started! "
+                self.env._(
+                    "Some operations have already started! "
                     "Please validate or reset operations on "
-                    "picking %s to ensure delivery slip to be computed."
+                    "picking %(picking)s to ensure delivery slip to be computed.",
+                    picking=picking.name,
                 )
-                % picking.name
             )
