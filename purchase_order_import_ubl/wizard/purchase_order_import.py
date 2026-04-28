@@ -7,14 +7,13 @@ from typing import Any
 from lxml import etree
 
 from odoo import api, models
-from odoo.tools import float_is_zero
 
 logger = logging.getLogger(__name__)
 
 
-class PurchaseOrderImport(models.TransientModel):
-    _name = "purchase.order.import"
-    _inherit = ["purchase.order.import", "base.ubl"]
+class PurchaseOrderImportWizard(models.TransientModel):
+    _name = "purchase.order.import.wizard"
+    _inherit = ["purchase.order.import.wizard", "base.ubl"]
 
     @api.model
     def parse_xml_quote(self, xml_root: etree._Element) -> dict[str, Any]:
@@ -25,19 +24,20 @@ class PurchaseOrderImport(models.TransientModel):
 
     @api.model
     def parse_ubl_quote_line(self, line: etree._Element, ns: dict) -> dict[str, Any]:
-        qty_prec = self.env["decimal.precision"].precision_get(
-            "Product Unit of Measure"
-        )
         line_item = line.xpath("cac:LineItem", namespaces=ns)[0]
         qty_xpath = line_item.xpath("cbc:Quantity", namespaces=ns)
         qty = float(qty_xpath[0].text)
+        uom_dict = {"unece_code": qty_xpath[0].attrib.get("unitCode")}
+        uom = self.env["business.document.import"]._match_uom(
+            uom_dict.copy(), [], raise_exception=False
+        )
         price_unit = 0.0
         subtotal_without_tax_xpath = line_item.xpath(
             "cbc:LineExtensionAmount", namespaces=ns
         )
         if subtotal_without_tax_xpath:
             subtotal_without_tax = float(subtotal_without_tax_xpath[0].text)
-            if not float_is_zero(qty, precision_digits=qty_prec):
+            if not uom.is_zero(qty):
                 price_unit = subtotal_without_tax / qty
         else:
             price_xpath = line_item.xpath("cac:Price/cbc:PriceAmount", namespaces=ns)
@@ -46,7 +46,7 @@ class PurchaseOrderImport(models.TransientModel):
         return {
             "product": self.ubl_parse_product(line_item, ns),
             "qty": qty,
-            "uom": {"unece_code": qty_xpath[0].attrib.get("unitCode")},
+            "uom": uom_dict,
             "price_unit": price_unit,
         }
 
@@ -75,7 +75,7 @@ class PurchaseOrderImport(models.TransientModel):
         )
         company_dict_full = self.ubl_parse_party(customer_xpath_party[0], ns)
         company_dict = {}
-        # We only take the "official references" for company_dict
+        # We only take the "official references" for company_dict.
         if company_dict_full.get("vat"):
             company_dict = {"vat": company_dict_full["vat"]}
         delivery_term_xpath = xml_root.xpath(
@@ -90,7 +90,6 @@ class PurchaseOrderImport(models.TransientModel):
         res_lines = []
         for line in lines_xpath:
             res_lines.append(self.parse_ubl_quote_line(line, ns))
-        # TODO : add charges
         res = {
             "partner": supplier_dict,
             "company": company_dict,
@@ -100,7 +99,7 @@ class PurchaseOrderImport(models.TransientModel):
             "note": note_xpath and note_xpath[0].text or False,
             "lines": res_lines,
         }
-        # Stupid hack to remove invalid VAT of sample files
+        # Stupid hack to remove invalid VAT of sample files.
         if res["partner"]["vat"] in ["DK18296799"]:
             res["partner"].pop("vat")
         return res

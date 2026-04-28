@@ -12,9 +12,9 @@ from odoo.exceptions import UserError
 logger = logging.getLogger(__name__)
 
 
-class PurchaseOrderResponseImport(models.TransientModel):
-    _name = "purchase.order.response.import"
-    _inherit = ["purchase.order.response.import", "base.ubl"]
+class OrderResponseImportWizard(models.TransientModel):
+    _name = "order.response.import.wizard"
+    _inherit = ["order.response.import.wizard", "base.ubl"]
 
     _order_response_code_to_status = {
         "AB": "acknowledgement",
@@ -111,6 +111,7 @@ class PurchaseOrderResponseImport(models.TransientModel):
     #                                 # the backorder qty will be delivered
     #                                 # in a next shipping
     #    }]
+
     @api.model
     def parse_ubl_order_response(self, xml_root: etree._Element) -> dict[str, Any]:
         ns = dict(xml_root.nsmap)
@@ -136,7 +137,7 @@ class PurchaseOrderResponseImport(models.TransientModel):
             "/main:OrderResponse/cac:SellerSupplierParty", namespaces=ns
         )
         supplier_dict = self.ubl_parse_supplier_party(supplier_xpath[0], ns)
-        # We only take the "official references" for supplier_dict
+        # We only take the "official references" for supplier_dict.
         supplier_dict = {"vat": supplier_dict.get("vat")}
         customer_xpath_party = xml_root.xpath(
             "/main:OrderResponse/cac:BuyerCustomerParty/cac:Party",
@@ -144,7 +145,7 @@ class PurchaseOrderResponseImport(models.TransientModel):
         )
         company_dict_full = self.ubl_parse_party(customer_xpath_party[0], ns)
         company_dict = {}
-        # We only take the "official references" for company_dict
+        # We only take the "official references" for company_dict.
         if company_dict_full.get("vat"):
             company_dict = {"vat": company_dict_full["vat"]}
         note_xpath = xml_root.xpath("/main:OrderResponse/cbc:Note", namespaces=ns)
@@ -152,7 +153,7 @@ class PurchaseOrderResponseImport(models.TransientModel):
         res_lines = []
         for line in lines_xpath:
             res_lines.append(self.parse_ubl_order_response_line(line, ns))
-        res = {
+        return {
             "ref": order_reference_xpath[0].text,
             "supplier": supplier_dict,
             "company": company_dict,
@@ -163,4 +164,3 @@ class PurchaseOrderResponseImport(models.TransientModel):
             "note": self.parse_note_path(note_xpath),
             "lines": res_lines,
         }
-        return res
