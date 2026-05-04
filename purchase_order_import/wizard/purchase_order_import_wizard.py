@@ -193,9 +193,24 @@ class PurchaseOrderImportWizard(models.TransientModel):
         it updates existing prices, optionally updates quantities, adds missing
         quoted products, and only warns about RFQ lines absent from the quote.
         """
-        polo = self.env["purchase.order.line"]
         chatter = parsed_quote["chatter_msg"]
         bdio = self.env["business.document.import"]
+        compare_res = bdio.compare_lines(
+            self._existing_order_lines_for_import(order),
+            parsed_quote["lines"],
+            chatter,
+            seller=order.partner_id.commercial_partner_id,
+        )
+        if not compare_res:
+            return True
+        self._update_matched_order_lines(compare_res, order, chatter)
+        self._warn_missing_order_lines(compare_res, chatter)
+        self._create_missing_order_lines(compare_res, order, chatter)
+        return True
+
+    @api.model
+    def _existing_order_lines_for_import(self, order: models.Model) -> list[dict]:
+        """Return existing RFQ lines in the format expected by compare_lines."""
         existing_lines = []
         for oline in order.order_line:
             price_unit = 0.0
@@ -211,17 +226,12 @@ class PurchaseOrderImportWizard(models.TransientModel):
                     "line": oline,
                 }
             )
+        return existing_lines
 
-        compare_res = bdio.compare_lines(
-            existing_lines,
-            parsed_quote["lines"],
-            chatter,
-            seller=order.partner_id.commercial_partner_id,
-        )
-
-        update_option = self.update_option
-        if not compare_res:
-            return True
+    def _update_matched_order_lines(
+        self, compare_res: dict[str, Any], order: models.Model, chatter: list[str]
+    ):
+        """Update existing RFQ lines that matched quoted lines."""
         for oline, cdict in compare_res["to_update"].items():
             write_vals = {}
             if cdict.get("price_unit"):
@@ -237,7 +247,7 @@ class PurchaseOrderImportWizard(models.TransientModel):
                     )
                 )
                 write_vals["price_unit"] = cdict["price_unit"][1]  # TODO
-            if update_option == "all" and cdict.get("qty"):
+            if self.update_option == "all" and cdict.get("qty"):
                 chatter.append(
                     self.env._(
                         "The quantity has been updated on the RFQ line with "
@@ -252,6 +262,12 @@ class PurchaseOrderImportWizard(models.TransientModel):
                 write_vals["product_qty"] = cdict["qty"][1]
             if write_vals:
                 oline.write(write_vals)
+
+    @api.model
+    def _warn_missing_order_lines(
+        self, compare_res: dict[str, Any], chatter: list[str]
+    ):
+        """Warn about RFQ lines missing from the imported quotation."""
         if compare_res["to_remove"]:  # we don't delete the lines, only warn
             warn_label = [
                 f"{line.product_qty} {line.product_uom_id.name} x "
@@ -266,7 +282,13 @@ class PurchaseOrderImportWizard(models.TransientModel):
                     lines=", ".join(warn_label),
                 )
             )
+
+    def _create_missing_order_lines(
+        self, compare_res: dict[str, Any], order: models.Model, chatter: list[str]
+    ):
+        """Create RFQ lines for quoted products missing from the order."""
         if compare_res["to_add"]:
+            polo = self.env["purchase.order.line"]
             to_create_label = []
             for add in compare_res["to_add"]:
                 line_vals = self._prepare_create_order_line(
@@ -285,7 +307,6 @@ class PurchaseOrderImportWizard(models.TransientModel):
                     lines=", ".join(to_create_label),
                 )
             )
-        return True
 
     @api.model
     def _prepare_create_order_line(

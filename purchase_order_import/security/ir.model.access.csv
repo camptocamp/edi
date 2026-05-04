@@ -1,3 +1,3 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_order_response_import_wizard,access.order.response.import.wizard,purchase_order_import.model_order_response_import_wizard,base.group_user,1,1,1,0
+access_purchase_order_response_import_wizard,access.purchase.order.response.import.wizard,purchase_order_import.model_purchase_order_response_import_wizard,base.group_user,1,1,1,0
 access_purchase_order_import_wizard,access.purchase.order.import.wizard,purchase_order_import.model_purchase_order_import_wizard,base.group_user,1,1,1,0

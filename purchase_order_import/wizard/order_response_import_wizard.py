@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class OrderResponseImportWizard(models.TransientModel):
-    _name = "order.response.import.wizard"
+    _name = "purchase.order.response.import.wizard"
     _description = "Purchase Order Response Import from Files"
 
     document = fields.Binary(
@@ -287,6 +287,29 @@ class OrderResponseImportWizard(models.TransientModel):
         )
         chatter.append(self.env._("PO confirmed with amendment by the supplier."))
         lines = parsed_order_document["lines"]
+        lines_by_id = self._get_conditional_lines_by_id(
+            purchase_order, parsed_order_document, lines, chatter
+        )
+        if lines_by_id is None:
+            return
+        purchase_order.button_approve()
+        for order_line in purchase_order.order_line:
+            self._process_conditional_line(
+                order_line,
+                lines_by_id[order_line.id],
+                parsed_order_document,
+                chatter,
+            )
+
+    @api.model
+    def _get_conditional_lines_by_id(
+        self,
+        purchase_order: models.Model,
+        parsed_order_document: dict[str, Any],
+        lines: list[dict[str, Any]],
+        chatter: list[str],
+    ) -> dict[int, dict[str, Any]] | None:
+        """Return conditional response lines keyed by PO line id."""
         try:
             line_ids = {int(line["line_id"]) for line in lines}
         except (KeyError, TypeError, ValueError):
@@ -307,81 +330,88 @@ class OrderResponseImportWizard(models.TransientModel):
                 chatter,
                 True,
             )
-            return
-        purchase_order.button_approve()
-        # apply changes to the created moves...
-        lines_by_id = {int(line["line_id"]): line for line in lines}
-        for order_line in purchase_order.order_line:
-            line_info = lines_by_id[order_line.id]
-            note = line_info.get("note")
-            move = order_line.move_ids.filtered(
-                lambda x: x.state not in ("cancel", "done")
-            )
-            if len(move) != 1:
-                self.env["business.document.import"].user_error_wrap(
-                    "_process_conditional",
-                    parsed_order_document,
-                    self.env._(
-                        "More than one move found for PO line.\n"
-                        "Move IDs: %(move_ids)s\n"
-                        "Line Info: %(line_info)s",
-                        move_ids=move.ids,
-                        line_info=line_info,
-                    ),
-                    chatter,
-                    True,
-                )
-            if note:
-                move.write({"description_picking": note})
-            status = line_info["status"]
-            if status == "accepted":
-                continue
-            if status == "rejected":
-                order_line.move_ids._action_cancel()
-            elif status == "amend":
-                qty = line_info["qty"]
-                backorder_qty = line_info["backorder_qty"]
-                move_qty = move.product_qty
-                if move.product_uom.compare(qty, move_qty) < 0:
-                    self._check_picking_status(move.picking_id)
-                    new_move = self._split_move(move, move_qty - qty)
-                    to_cancel = None
-                    if backorder_qty:
-                        note = note + "\n" if note else ""
-                        note += self.env._(
-                            "%(qty)s items should be delivered into a next delivery.",
-                            qty=backorder_qty,
-                        )
-                        move.description_picking = note
-                        # if the backorder qty is < than the remaining qty
-                        # split and cancel the qty that will not be delivered
-                        if (
-                            new_move.product_uom.compare(
-                                backorder_qty, new_move.product_qty
-                            )
-                            < 0
-                        ):
-                            to_cancel = self._split_move(
-                                new_move, new_move.product_qty - backorder_qty
-                            )
-                    else:
-                        to_cancel = new_move
-                    if to_cancel:
-                        to_cancel._action_cancel()
-                        to_cancel.write(
-                            {
-                                "description_picking": self.env._(
-                                    "No backorder planned by the supplier."
-                                )
-                            }
-                        )
-                    if new_move.state != "cancel":
-                        # move the new move into an backorder picking to avoid
-                        # that the scheduler merge the two moves into the same
-                        # pack operation
-                        self._add_move_to_backorder(new_move)
+            return None
+        return {int(line["line_id"]): line for line in lines}
 
-                    move.picking_id.action_assign()
+    @api.model
+    def _process_conditional_line(
+        self,
+        order_line: models.Model,
+        line_info: dict[str, Any],
+        parsed_order_document: dict[str, Any],
+        chatter: list[str],
+    ):
+        """Apply one conditional response line to its receipt move."""
+        note = line_info.get("note")
+        move = order_line.move_ids.filtered(lambda x: x.state not in ("cancel", "done"))
+        if len(move) != 1:
+            self.env["business.document.import"].user_error_wrap(
+                "_process_conditional",
+                parsed_order_document,
+                self.env._(
+                    "More than one move found for PO line.\n"
+                    "Move IDs: %(move_ids)s\n"
+                    "Line Info: %(line_info)s",
+                    move_ids=move.ids,
+                    line_info=line_info,
+                ),
+                chatter,
+                True,
+            )
+        if note:
+            move.write({"description_picking": note})
+        status = line_info["status"]
+        if status == "accepted":
+            return
+        if status == "rejected":
+            order_line.move_ids._action_cancel()
+        elif status == "amend":
+            self._process_amended_move(move, line_info, note)
+
+    @api.model
+    def _process_amended_move(
+        self, move: models.Model, line_info: dict[str, Any], note: str | None
+    ):
+        """Split amended receipt quantities into kept, backordered, and cancelled."""
+        qty = line_info["qty"]
+        backorder_qty = line_info["backorder_qty"]
+        move_qty = move.product_qty
+        if move.product_uom.compare(qty, move_qty) >= 0:
+            return
+        self._check_picking_status(move.picking_id)
+        new_move = self._split_move(move, move_qty - qty)
+        to_cancel = None
+        if backorder_qty:
+            self._add_backorder_note(move, note, backorder_qty)
+            if new_move.product_uom.compare(backorder_qty, new_move.product_qty) < 0:
+                to_cancel = self._split_move(
+                    new_move, new_move.product_qty - backorder_qty
+                )
+        else:
+            to_cancel = new_move
+        if to_cancel:
+            to_cancel._action_cancel()
+            to_cancel.write(
+                {
+                    "description_picking": self.env._(
+                        "No backorder planned by the supplier."
+                    )
+                }
+            )
+        if new_move.state != "cancel":
+            self._add_move_to_backorder(new_move)
+        move.picking_id.action_assign()
+
+    @api.model
+    def _add_backorder_note(
+        self, move: models.Model, note: str | None, backorder_qty: float
+    ):
+        """Append backorder information on the confirmed receipt move."""
+        note = note + "\n" if note else ""
+        move.description_picking = note + self.env._(
+            "%(qty)s items should be delivered into a next delivery.",
+            qty=backorder_qty,
+        )
 
     @api.model
     def _split_move(self, move: models.Model, qty: float) -> models.Model:

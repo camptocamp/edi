@@ -10,8 +10,7 @@ class TestOrderResponseImportCommon(BaseCommon):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
-        cls.OrderResponseImport = cls.env["order.response.import.wizard"]
+        cls.OrderResponseImport = cls.env["purchase.order.response.import.wizard"]
         cls.env.user.company_id.partner_id.vat = "BE0421801233"
         cls.currency_euro = cls._enable_currency("EUR")
         cls.currency_usd = cls._enable_currency("USD")
