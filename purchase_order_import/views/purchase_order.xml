@@ -14,7 +14,8 @@
                     type="action"
                     string="Import Quotation File"
                     name="%(purchase_order_import.purchase_order_import_action)d"
-                    states="draft,sent,bid"
+                    invisible="not id or state not in ('draft', 'sent')"
+                    context="{'default_purchase_id': id}"
                     groups="purchase.group_purchase_user"
                 />
             </button>

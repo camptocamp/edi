@@ -1,12 +1,9 @@
 # Copyright 2020 ACSONE SA/NV
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-from odoo import _, fields
 from odoo.exceptions import UserError
-from odoo.tests import SavepointCase
 
-from ..wizard.order_response_import import (
-    LINE_STATUS_ACCEPTED,
+from odoo.addons.purchase_order_import.wizard.purchase_order_response_import import (
     LINE_STATUS_AMEND,
     LINE_STATUS_REJECTED,
     ORDER_RESPONSE_STATUS_ACCEPTED,
@@ -15,80 +12,10 @@ from ..wizard.order_response_import import (
     ORDER_RESPONSE_STATUS_REJECTED,
 )
 
-
-class TestOrderResponseImportCommon(SavepointCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
-        cls.supplier = cls.env.ref("base.res_partner_12")
-        cls.supplier.vat = "BE0477472701"
-        cls.env.user.company_id.partner_id.vat = "BE0421801233"
-        cls.currency_euro = cls.env.ref("base.EUR")
-        cls.currency_usd = cls.env.ref("base.USD")
-        cls.product_1 = cls.env["product.product"].create(
-            {
-                "name": "Product 1",
-                "seller_ids": [(0, 0, {"name": cls.supplier.id, "product_code": "P1"})],
-            }
-        )
-        cls.product_2 = cls.env["product.product"].create(
-            {
-                "name": "Product 2",
-                "seller_ids": [(0, 0, {"name": cls.supplier.id, "product_code": "P2"})],
-            }
-        )
-        cls.purchase_order = cls.env["purchase.order"].create(
-            {
-                "partner_id": cls.supplier.id,
-                "date_order": fields.Datetime.now(),
-                "date_planned": fields.Datetime.now(),
-                "currency_id": cls.currency_euro.id,
-            }
-        )
-        cls.line1 = cls.purchase_order.order_line.create(
-            {
-                "order_id": cls.purchase_order.id,
-                "product_id": cls.product_1.id,
-                "name": cls.product_2.name,
-                "date_planned": fields.Datetime.now(),
-                "product_qty": 10,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
-                "price_unit": 15,
-            }
-        )
-        cls.line2 = cls.purchase_order.order_line.create(
-            {
-                "order_id": cls.purchase_order.id,
-                "product_id": cls.product_2.id,
-                "name": cls.product_2.name,
-                "date_planned": fields.Datetime.now(),
-                "product_qty": 5,
-                "product_uom": cls.env.ref("product.product_uom_unit").id,
-                "price_unit": 25,
-            }
-        )
-        cls.OrderResponseImport = cls.env["order.response.import"]
-
-    def order_line_to_data(
-        self,
-        order_line,
-        qty=None,
-        status=LINE_STATUS_ACCEPTED,
-        backorder_qty=None,
-        note=None,
-    ):
-        return {
-            "status": status,
-            "backorder_qty": backorder_qty,
-            "qty": qty if qty is not None else order_line.product_qty,
-            "note": note,
-            "line_id": str(order_line.id),
-            "uom": {"unece_code": order_line.product_uom.unece_code},
-        }
+from .common import TestPurchaseOrderResponseImportCommon
 
 
-class TestOrderResponseImport(TestOrderResponseImportCommon):
+class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
     def _get_base_data(self):
         return {
             "status": ORDER_RESPONSE_STATUS_ACK,
@@ -106,7 +33,7 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
     def test_01(self):
         """
         Data:
-            Data  with unknown PO reference
+            Data with unknown PO reference
         Test Case:
             Process data
         Expected result:
@@ -117,7 +44,7 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
         with self.assertRaises(UserError) as ue:
             self.OrderResponseImport.process_data(data)
         self.assertEqual(
-            ue.exception.name, _("No purchase order found for name 123456.")
+            ue.exception.args[0], ("No purchase order found for name 123456.")
         )
 
     def test_02(self):
@@ -133,12 +60,12 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
         data["status"] = "unknown"
         with self.assertRaises(UserError) as ue:
             self.OrderResponseImport.process_data(data)
-        self.assertEqual(ue.exception.name, _("Unknown status 'unknown'."))
+        self.assertEqual(ue.exception.args[0], ("Unknown status 'unknown'."))
 
     def test_03(self):
         """
         Data:
-            Data with an other currency
+            Data with another currency
         Test Case:
             Process data
         Expected result:
@@ -149,8 +76,8 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
         with self.assertRaises(UserError) as ue:
             self.OrderResponseImport.process_data(data)
         self.assertEqual(
-            ue.exception.name,
-            _(
+            ue.exception.args[0],
+            (
                 "The currency of the imported OrderResponse (USD) is "
                 "different from the currency of the purchase order (EUR)."
             ),
@@ -222,16 +149,14 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
         with self.assertRaises(UserError) as ue:
             self.OrderResponseImport.process_data(data)
             expected = (
-                _(
-                    "Unable to conditionally confirm the purchase order. \n"
-                    "Line IDS into the parsed document differs from the "
-                    "expected list of order line ids: \n "
-                    "received: []\n"
-                    "expected: %s\n"
-                )
-                % self.purchase_order.order_line.ids
+                "Unable to conditionally confirm the purchase order. \n"
+                "Line IDS into the parsed document differs from the "
+                "expected list of order line ids: \n "
+                "received: []\n"
+                "expected: %s\n",
+                self.purchase_order.order_line.ids,
             )
-            self.assertEqual(ue.exception.name, expected)
+            self.assertEqual(ue.exception.args[0], expected)
 
     def test_08(self):
         """
@@ -251,17 +176,16 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
         data["lines"].append(line2)
         with self.assertRaises(UserError) as ue:
             self.OrderResponseImport.process_data(data)
-            expected = _(
+            expected = (
                 "Unable to conditionally confirm the purchase order. \n"
                 "Line IDS into the parsed document differs from the "
                 "expected list of order line ids: \n "
                 "received: [%s]\n"
-                "expected: %s\n"
-            ) % (
+                "expected: %s\n",
                 [str(self.line1.id), "WRONG"],
                 self.purchase_order.order_line.ids,
             )
-            self.assertEqual(ue.exception.name, expected)
+            self.assertEqual(ue.exception.args[0], expected)
 
     def test_09(self):
         """
@@ -313,7 +237,7 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
         self.assertTrue(self.purchase_order.picking_ids)
         self.assertEqual(self.line1.move_ids.state, "assigned")
         self.assertEqual(self.line2.move_ids.state, "cancel")
-        self.assertEqual(self.line2.move_ids.note, "cancel by import")
+        self.assertIn("cancel by import", self.line2.move_ids.description_picking)
 
     def test_11(self):
         """
@@ -343,7 +267,7 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
         self.assertTrue(self.purchase_order.picking_ids)
         self.assertEqual(self.line1.move_ids.state, "assigned")
         self.assertEqual(self.line2.move_ids.state, "cancel")
-        self.assertEqual(self.line2.move_ids.note, "cancel by import")
+        self.assertIn("cancel by import", self.line2.move_ids.description_picking)
 
     def test_12(self):
         """
@@ -379,7 +303,9 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
         self.assertEqual(assigned.product_qty, confirmed_qty)
         cancel = move_ids.filtered(lambda s: s.state == "cancel")
         self.assertEqual(cancel.product_qty, 3)
-        self.assertEqual(cancel.note, "No backorder planned by the supplier.")
+        self.assertIn(
+            "No backorder planned by the supplier.", cancel.description_picking
+        )
 
     def test_13(self):
         """
@@ -421,9 +347,9 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
             lambda s: s.state == "assigned" and s.product_qty == confirmed_qty
         )
         self.assertTrue(move_confirmed)
-        self.assertEqual(
-            _("my note\n%s items should be delivered into a next delivery.") % "3",
-            move_confirmed.note,
+        self.assertIn(
+            "3 items should be delivered into a next delivery.",
+            move_confirmed.description_picking,
         )
         move_backorder = move_ids.filtered(
             lambda s: s.state == "assigned" and s.product_qty == 3
@@ -486,9 +412,9 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
             lambda s: s.state == "assigned" and s.product_qty == line1_confirmed_qty
         )
         self.assertTrue(move_confirmed)
-        self.assertEqual(
-            _("my note\n%s items should be delivered into a next delivery.") % "3",
-            move_confirmed.note,
+        self.assertIn(
+            "3 items should be delivered into a next delivery.",
+            move_confirmed.description_picking,
         )
         move_backorder = line1_move_ids.filtered(
             lambda s: s.state == "assigned" and s.product_qty == 3
@@ -508,9 +434,9 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
             lambda s: s.state == "assigned" and s.product_qty == line2_confirmed_qty
         )
         self.assertTrue(move_confirmed)
-        self.assertEqual(
-            _("my note\n%s items should be delivered into a next delivery.") % "3",
-            move_confirmed.note,
+        self.assertIn(
+            "3 items should be delivered into a next delivery.",
+            move_confirmed.description_picking,
         )
         move_backorder = line2_move_ids.filtered(
             lambda s: s.state == "assigned" and s.product_qty == 3
@@ -561,17 +487,17 @@ class TestOrderResponseImport(TestOrderResponseImportCommon):
             lambda s: s.state == "assigned" and s.product_qty == confirmed_qty
         )
         self.assertTrue(move_confirmed)
-        self.assertEqual(
-            _("%s items should be delivered into a next delivery.") % "2",
-            move_confirmed.note,
+        self.assertIn(
+            "2 items should be delivered into a next delivery.",
+            move_confirmed.description_picking,
         )
         move_cancel = move_ids.filtered(
             lambda s: s.state == "cancel" and s.product_qty == 1
         )
         self.assertTrue(move_cancel)
-        self.assertEqual(
-            _("No backorder planned by the supplier."),
-            move_cancel.note,
+        self.assertIn(
+            "No backorder planned by the supplier.",
+            move_cancel.description_picking,
         )
         move_backorder = move_ids.filtered(
             lambda s: s.state == "assigned" and s.product_qty == 2

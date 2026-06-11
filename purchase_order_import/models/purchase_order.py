@@ -9,8 +9,7 @@ class PurchaseOrder(models.Model):
 
     supplier_ack_dt = fields.Datetime(
         "Supplier Acknowledgement Date",
-        help="Date and time of the acknowledgement by the supplier. "
-        "This field is filled by Odoo when processing a "
-        "OrderResponse document.",
         index=True,
+        help="Date and time of the acknowledgement by the supplier."
+        " This field is filled by Odoo when processing a OrderResponse document.",
     )
