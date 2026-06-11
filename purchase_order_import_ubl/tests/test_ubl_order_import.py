@@ -3,33 +3,62 @@
 
 import base64
 
-from odoo.tests.common import TransactionCase
+from odoo.fields import Command
 from odoo.tools import file_open
 
+from odoo.addons.base.tests.common import BaseCommon
 
-class TestUblOrderImport(TransactionCase):
-    def test_ubl_order_import(self):
-        tests = {
-            "quote-PO00004.pdf": {
-                "po_to_update": self.env.ref("purchase.purchase_order_4"),
-                "incoterm": self.env.ref("stock.incoterm_DDU"),
-            },
-        }
-        poio = self.env["purchase.order.import"]
-        for filename, res in tests.iteritems():
-            po = res["po_to_update"]
 
-            f = file_open("purchase_order_import_ubl/tests/files/" + filename, "rb")
-            quote_file = f.read()
-            wiz = poio.with_context(
-                active_model="purchase.order", active_id=po.id
-            ).create(
+class TestUblOrderImport(BaseCommon):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        # For the sake of testing:
+        # - enable USD and EUR
+        # - set the PO currency to EUR
+        # - create products where the PO supplier is listed as seller
+        # - set the PO supplier email to match the one in the PDF file
+        # - clear all partner emails and websites to avoid random matches
+        (cls.env.ref("base.USD") + cls.env.ref("base.EUR")).action_unarchive()
+        cls.po = cls.env.ref("purchase.purchase_order_4")
+        cls.po.currency_id = cls.env.ref("base.EUR")
+        cls.env["product.product"].create(
+            [
                 {
-                    "quote_file": base64.b64encode(quote_file),
-                    "quote_filename": filename,
+                    "name": f"Test Product ({code})",
+                    "type": "consu",
+                    "seller_ids": [
+                        Command.create(
+                            {
+                                "partner_id": cls.po.partner_id.id,
+                                "product_code": code,
+                            }
+                        )
+                    ],
                 }
-            )
-            f.close()
-            self.assertEqual(wiz.purchase_id, po)
-            wiz.update_rfq_button()
-            self.assertEqual(po.incoterm_id, res["incoterm"])
+                for code in ("PROD_DEL02", "MBi9", "E-COM07", "E-COM09")
+            ]
+        )
+        cls.po.partner_id.email = "info@.example.com"
+        if other_partners := (cls.env["res.partner"].search([]) - cls.po.partner_id):
+            other_partners.write({"email": "", "website": ""})
+        with file_open(
+            "purchase_order_import_ubl/tests/files/quote-PO00004.pdf", "rb"
+        ) as f:
+            cls.order_response_pdf = f.read()
+
+    def test_ubl_order_import(self):
+        po = self.env.ref("purchase.purchase_order_4")
+
+        poio = self.env["purchase.order.import"]
+        wiz = poio.with_context(default_purchase_id=po.id).create(
+            [
+                {
+                    "quote_file": base64.b64encode(self.order_response_pdf),
+                    "quote_filename": "quote-PO00004.pdf",
+                }
+            ]
+        )
+        self.assertEqual(wiz.purchase_id, po)
+        wiz.update_rfq_button()
+        self.assertEqual(po.incoterm_id, self.env.ref("account.incoterm_EXW"))
