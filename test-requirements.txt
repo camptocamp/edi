@@ -1,0 +1,1 @@
+odoo-addon-purchase_order_import @ git+https://github.com/OCA/edi.git@refs/pull/1360/head#subdirectory=purchase_order_import
