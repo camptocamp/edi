@@ -55,7 +55,7 @@ msgid "Created on"
 msgstr "Créé le"
 
 #. module: purchase_order_import
-#: model:ir.model.fields,help:purchase_order_import.field_purchase_order__supplier_ack_dt
+#: model:ir.model.fields,help:purchase_order_import.field_purchase_order__supplier_ack_received_on
 msgid ""
 "Date and time of the acknowledgement by the supplier. This field is filled "
 "by Odoo when processing a OrderResponse document."
@@ -233,7 +233,7 @@ msgid ""
 msgstr ""
 
 #. module: purchase_order_import
-#: model:ir.model.fields,field_description:purchase_order_import.field_purchase_order__supplier_ack_dt
+#: model:ir.model.fields,field_description:purchase_order_import.field_purchase_order__supplier_ack_received_on
 msgid "Supplier Acknowledgement Date"
 msgstr ""
 

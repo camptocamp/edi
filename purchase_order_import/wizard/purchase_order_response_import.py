@@ -242,8 +242,8 @@ class PurchaseOrderResponseImport(models.TransientModel):
 
     @api.model
     def _process_ack(self, purchase_order, parsed_order_document):
-        if not purchase_order.supplier_ack_dt:
-            purchase_order.supplier_ack_dt = fields.Datetime.now()
+        if not purchase_order.supplier_ack_received_on:
+            purchase_order.supplier_ack_received_on = fields.Datetime.now()
 
     @api.model
     def _process_rejected(self, purchase_order, parsed_order_document):

@@ -261,7 +261,9 @@ class PurchaseOrderImport(models.TransientModel):
             "order_id": order,
             "price_unit": import_line["price_unit"],
         }
-        vals.update(polo.play_onchanges(vals, ["product_id"]))
+        # We don't want to depend on OCA/server-tools's module ``onchange_helper``
+        if hasattr(polo, "play_onchanges"):
+            vals.update(polo.play_onchanges(vals, ["product_id"]))
         vals.pop("order_id")
         return vals
 

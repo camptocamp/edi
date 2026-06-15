@@ -16,8 +16,6 @@
         "uom_unece",
         # OCA/edi
         "base_business_document_import",
-        # OCA/server-tools
-        "onchange_helper",
     ],
     "data": [
         "security/ir.model.access.csv",

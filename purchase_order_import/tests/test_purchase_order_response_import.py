@@ -30,7 +30,7 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
             "ref": str(self.purchase_order.name),
         }
 
-    def test_01(self):
+    def test_01_unknown_po_ref(self):
         """
         Data:
             Data with unknown PO reference
@@ -44,10 +44,10 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
         with self.assertRaises(UserError) as ue:
             self.OrderResponseImport.process_data(data)
         self.assertEqual(
-            ue.exception.args[0], ("No purchase order found for name 123456.")
+            ue.exception.args[0], "No purchase order found for name 123456."
         )
 
-    def test_02(self):
+    def test_02_unknown_po_status(self):
         """
         Data:
             Data with unknown PO status
@@ -60,9 +60,9 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
         data["status"] = "unknown"
         with self.assertRaises(UserError) as ue:
             self.OrderResponseImport.process_data(data)
-        self.assertEqual(ue.exception.args[0], ("Unknown status 'unknown'."))
+        self.assertEqual(ue.exception.args[0], "Unknown status 'unknown'.")
 
-    def test_03(self):
+    def test_03_different_po_currency(self):
         """
         Data:
             Data with another currency
@@ -77,13 +77,11 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
             self.OrderResponseImport.process_data(data)
         self.assertEqual(
             ue.exception.args[0],
-            (
-                "The currency of the imported OrderResponse (USD) is "
-                "different from the currency of the purchase order (EUR)."
-            ),
+            "The currency of the imported OrderResponse (USD) is different from the"
+            " currency of the purchase order (EUR).",
         )
 
-    def test_04(self):
+    def test_04_receive_ack_status(self):
         """
         Data:
             Data with status ack.
@@ -94,11 +92,11 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
         """
         data = self._get_base_data()
         data["status"] = ORDER_RESPONSE_STATUS_ACK
-        self.assertFalse(self.purchase_order.supplier_ack_dt)
+        self.assertFalse(self.purchase_order.supplier_ack_received_on)
         self.OrderResponseImport.process_data(data)
-        self.assertTrue(self.purchase_order.supplier_ack_dt)
+        self.assertTrue(self.purchase_order.supplier_ack_received_on)
 
-    def test_05(self):
+    def test_05_receive_accepted_status(self):
         """
         Data:
             Data with status accepted
@@ -117,7 +115,7 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
         self.assertTrue(self.purchase_order.picking_ids)
         self.assertEqual(self.purchase_order.state, "purchase")
 
-    def test_06(self):
+    def test_06_receive_rejected_status(self):
         """
         Data:
             Data with status rejected
@@ -133,15 +131,14 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
         self.OrderResponseImport.process_data(data)
         self.assertEqual(self.purchase_order.state, "cancel")
 
-    def test_07(self):
+    def test_07_receive_conditionally_accepted_status_without_lines(self):
         """
         Data:
             Data with status 'conditionally_accepted' and without lines
         Test Case:
             Process data
         Expected result:
-            UserError is raised since a all line details must be provided with
-            this status
+            UserError is raised since all line details must be provided with this status
         """
         data = self._get_base_data()
         data["status"] = ORDER_RESPONSE_STATUS_CONDITIONAL
@@ -158,15 +155,14 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
             )
             self.assertEqual(ue.exception.args[0], expected)
 
-    def test_08(self):
+    def test_08_receive_conditionally_accepted_status_with_wrong_line_id(self):
         """
         Data:
             Data with status 'conditionally_accepted' and with a wrong line id
         Test Case:
             Process data
         Expected result:
-            UserError is raised since a all line details must be provided with
-            this status
+            UserError is raised since all line details must be provided with this status
         """
         data = self._get_base_data()
         data["status"] = ORDER_RESPONSE_STATUS_CONDITIONAL
@@ -187,7 +183,7 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
             )
             self.assertEqual(ue.exception.args[0], expected)
 
-    def test_09(self):
+    def test_09_receive_conditionally_accepted_status_all_lines_accepted(self):
         """
         Data:
             Data with status 'conditionally_accepted' and all line accepted
@@ -209,7 +205,7 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
         self.assertEqual(self.line1.move_ids.state, "assigned")
         self.assertEqual(self.line2.move_ids.state, "assigned")
 
-    def test_10(self):
+    def test_10_receive_conditionally_accepted_status_mixed_lines_statuses(self):
         """
         Data:
             Data with status 'conditionally_accepted' and one line accepted
@@ -239,37 +235,7 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
         self.assertEqual(self.line2.move_ids.state, "cancel")
         self.assertIn("cancel by import", self.line2.move_ids.description_picking)
 
-    def test_11(self):
-        """
-        Data:
-            Data with status 'conditionally_accepted' and one line accepted
-            and another one rejected
-        Test Case:
-            Process data
-        Expected result:
-            PO is confirmed
-            A picking is created with one move by po line
-            The move linked to the accepted line is in state assigned
-            The move linked to the rejected line is in state cancel
-        """
-        data = self._get_base_data()
-        data["status"] = ORDER_RESPONSE_STATUS_CONDITIONAL
-        data["lines"] = [
-            self.order_line_to_data(self.line1),
-            self.order_line_to_data(
-                self.line2,
-                status=LINE_STATUS_REJECTED,
-                note="cancel by import",
-            ),
-        ]
-        self.OrderResponseImport.process_data(data)
-        self.assertEqual(self.purchase_order.state, "purchase")
-        self.assertTrue(self.purchase_order.picking_ids)
-        self.assertEqual(self.line1.move_ids.state, "assigned")
-        self.assertEqual(self.line2.move_ids.state, "cancel")
-        self.assertIn("cancel by import", self.line2.move_ids.description_picking)
-
-    def test_12(self):
+    def test_11_receive_conditionally_accepted_status_mixed_lines_statuses(self):
         """
         Data:
             Data with status 'conditionally_accepted'
@@ -307,7 +273,7 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
             "No backorder planned by the supplier.", cancel.description_picking
         )
 
-    def test_13(self):
+    def test_12_receive_conditionally_accepted_status_mixed_lines_statuses(self):
         """
         Data:
             Data with status 'conditionally_accepted'
@@ -360,7 +326,7 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
             move_confirmed.picking_id,
         )
 
-    def test_14(self):
+    def test_13_receive_conditionally_accepted_status_all_lines_amended(self):
         """
         Data:
             Data with status 'conditionally_accepted'
@@ -447,7 +413,7 @@ class TestPurchaseOrderResponseImport(TestPurchaseOrderResponseImportCommon):
             move_confirmed.picking_id,
         )
 
-    def test_15(self):
+    def test_14_receive_conditionally_accepted_status_mixed_lines_statuses(self):
         """
         Data:
             Data with status 'conditionally_accepted'
