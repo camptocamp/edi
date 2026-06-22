@@ -1,0 +1,4 @@
+- Alexis de Lattre \<<alexis.delattre@akretion.com>\>
+- Laurent Mignon \<<laurent.mignon@acsone.eu>\>
+- Alexandre Fayolle \<<alexandre.fayolle@camptocamp.com>\>
+- Maksym Yankin \<<maksym.yankin@camptocamp.com>\>
