@@ -1,0 +1,2 @@
+# required by server_environment tests
+odoo-test-helper
