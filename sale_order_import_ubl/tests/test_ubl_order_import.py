@@ -19,6 +19,10 @@ class TestUblOrderImport(TransactionCase):
         super().setUpClass()
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
 
+    def _is_sale_order_import_address_extended_installed(self) -> bool:
+        module = self.env.ref("base.module_sale_order_import_address_extended", False)
+        return bool(module) and module.state == "installed"
+
     @mute_logger("odoo.addons.sale_order_import.wizard.sale_order_import")
     def test_ubl_order_import(self):
         tests = get_test_data(self.env)
@@ -81,6 +85,14 @@ class TestUblOrderImport(TransactionCase):
         so = self.env["sale.order"].browse(action["res_id"])
         invoice_partner = so.partner_invoice_id
         self.assertEqual(rc_partner.records, invoice_partner)
+
+        # NB: if ``sale_order_import_address_extended`` is installed, the ``street``
+        # value may change: since this module doesn't depend on it, we check if it's
+        # already installed to play nice with the test runner
+        street = "Invoice Street"
+        if self._is_sale_order_import_address_extended_installed():
+            street += " 6"
+
         self.assertRecordValues(
             invoice_partner,
             [
@@ -93,7 +105,7 @@ class TestUblOrderImport(TransactionCase):
                     "parent_id": so.partner_id.id,
                     "phone": False,
                     "ref": False,
-                    "street": "Invoice Street",
+                    "street": street,
                     "street2": "Invoice floor",
                     "type": "invoice",
                     "vat": False,
@@ -121,6 +133,14 @@ class TestUblOrderImport(TransactionCase):
         so = self.env["sale.order"].browse(action["res_id"])
         shipping_partner = so.partner_shipping_id
         self.assertEqual(rc_partner.records, shipping_partner)
+
+        # NB: if ``sale_order_import_address_extended`` is installed, the ``street``
+        # value may change: since this module doesn't depend on it, we check if it's
+        # already installed to play nice with the test runner
+        street = "Delivery Street"
+        if self._is_sale_order_import_address_extended_installed():
+            street += " 7"
+
         self.assertRecordValues(
             shipping_partner,
             [
@@ -132,7 +152,7 @@ class TestUblOrderImport(TransactionCase):
                     "name": "Swedish trucking",
                     "parent_id": so.partner_id.id,
                     "phone": "987098709",
-                    "street": "Delivery Street",
+                    "street": street,
                     "street2": "Delivery floor",
                     "type": "delivery",
                     "vat": False,
